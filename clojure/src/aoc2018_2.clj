@@ -17,27 +17,48 @@
 (def sample "resources/day2.txt")
 
 (defn make-data [data]
-  (s/split data #"\r\n"))
+  (s/split-lines data))
 
-(->> (slurp sample)
-     (make-data))
 
 (defn twice [s]
   (loop [ss (s/split s #"") st #{}]
-    (println ss)
-    (println st)
     (if (empty? ss)
-      false
+      nil
       (if (get st (first ss))
         true
         (recur (rest ss) (conj st (first ss)))))))
 
-(twice "aabb")
+(defn three-times [s]
+  (loop [ss (s/split s #"") mp {} v []]
+    (if (empty? ss)
+      v
+      (if (= 2 (Integer. (get mp (first ss) 0)))
+        (recur (rest ss) (merge mp {(first ss) (inc (get mp (first ss) 0))}) (conj v (first ss)))
+        (recur (rest ss) (merge mp {(first ss) (inc (get mp (first ss) 0))}) v)))))
 
-(loop [list ["aabbcc" "aaabcdf"] two 0 three 0]
-  (if (empty? list)
-    {:two two :three three}
-    (recur (rest list) two three)))
+(defn remove-char [remove-targets st]
+  (loop [remove-targets remove-targets st st]
+    (if (empty? remove-targets)
+      st
+      (recur (rest remove-targets) (s/replace st (first remove-targets) "")))))
+
+(defn count-change [mp str]
+  (let [two (mp :two) three (mp :three)]
+    (let [three-words (three-times str)]
+      (let [twice? (twice (remove-char three-words str))]
+        {:two (if (= twice? true) (inc two) two) :three (if (> (count three-words) 0) (inc three) three)}))))
+
+(defn result [mp]
+  (* (mp :two) (mp :three)))
+
+(defn part1 []
+  (->> (slurp sample)
+       (make-data)
+       (reduce count-change {:two 0 :three 0})
+       (result)))
+
+(comment
+  (part1))
 
 ;; 파트 2
 ;; 여러개의 문자열 중, 같은 위치에 정확히 하나의 문자가 다른 문자열 쌍에서 같은 부분만을 리턴하시오.
