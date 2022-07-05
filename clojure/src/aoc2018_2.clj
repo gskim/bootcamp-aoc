@@ -1,4 +1,5 @@
-(ns aoc2018-2)
+(ns aoc2018-2
+  (:require [clojure.string :as s]))
 
 ;; 파트 1
 ;; 주어진 각각의 문자열에서, 같은 문자가 두번 혹은 세번씩 나타난다면 각각을 한번씩 센다.
@@ -13,6 +14,30 @@
 ;; ababab 3개의 a, 3개의 b 지만 한 문자열에서 같은 갯수는 한번만 카운트함 -> (두번 나오는 문자열 수: 4, 세번 나오는 문자열 수: 3)
 ;; 답 : 4 * 3 = 12
 
+(def sample "resources/day2.txt")
+
+(defn make-data [data]
+  (s/split data #"\r\n"))
+
+(->> (slurp sample)
+     (make-data))
+
+(defn twice [s]
+  (loop [ss (s/split s #"") st #{}]
+    (println ss)
+    (println st)
+    (if (empty? ss)
+      false
+      (if (get st (first ss))
+        true
+        (recur (rest ss) (conj st (first ss)))))))
+
+(twice "aabb")
+
+(loop [list ["aabbcc" "aaabcdf"] two 0 three 0]
+  (if (empty? list)
+    {:two two :three three}
+    (recur (rest list) two three)))
 
 ;; 파트 2
 ;; 여러개의 문자열 중, 같은 위치에 정확히 하나의 문자가 다른 문자열 쌍에서 같은 부분만을 리턴하시오.
