@@ -7,38 +7,57 @@
   (slurp sample)
   (count (s/split-lines (slurp sample))))
 
+
+(defn get-increment-position-list [x y]
+  (for [x (range x)
+        y (range y)]
+    [x y]))
+
+(defn sum-position-list
+  "position 목록에 전달받은 현재위치를 더해서 return\n
+   input: [list ([0 0] [0 1] [0 2] [1 0] [1 1] [1 2]) position [2 1]]\n
+   output: ([2 1] [2 2] [2 3] [3 1] [3 2] [3 3])
+   "
+  [list position]
+  (map (fn [pos] [(+ (get pos 0) (get position 0)) (+ (get pos 1) (get position 1))]) list))
+
+
 (comment
   (->> (s/split-lines (slurp sample))
        (#(let [list %]
            (map (fn [v] (s/split v #" ")) list)))
        (#(let [list %]
-           (map (fn [v] {:start-pos (s/replace (v 2) ":" "")
-                         :id        (v 0)
-                         :grid      (s/split (v 3) #"x")}) list)))
-       (#(let [list %]
-           (println list)
-           (loop [list list
-                  mp   {}]
-             (if (empty? list)
-               mp
-               (let [target (first list)
-                     grid   (target :grid)]
-                 (recur (rest list)
-                        (assoc mp (target :start-pos) (conj (get mp (target :start-pos) []) (target :id)))))))))))
+           (map (fn [v] {(keyword (s/replace (get v 2) ":" "")) {:start-pos (map read-string (s/split (s/replace (v 2) ":" "") #","))
+                                                                 :id        (v 0)
+                                                                 :grid      (map read-string (s/split (v 3) #"x"))}}) list)))
+      ;;  (#(let [list %]
+      ;;      (println list)
+      ;;      (loop [list list
+      ;;             mp   {}]
+      ;;        (if (empty? list)
+      ;;          mp
+      ;;          (let [target (first list)]
+      ;;            (recur (rest list)
+      ;;                   (assoc mp (target :start-pos) (conj (get mp (target :start-pos) []) (target :id)))))))))
+       ))
+
+(for [x    (range 1 6)
+      :let [y (* x x)
+            z (* x x x)]]
+  [x y z])
 
 (comment
-  (let [x   2
-        y   3
-        pos "1,3"
-        id  "#1"
-        hm  {}]
-    (for [x (range x)]
-      ((for [y (range y)]
-         ())))
+  (->>
+   (let [x 2
+         y 3]
+     (for [x (range x)
+           y (range y)]
+       [x y])
     ;; 1,3 2,3
    ;;  1,4 2,4
    ;;  1,5 2,5 
-    ))
+     )
+   (map (fn [v] [(+ (get v 0) 2) (+ (get v 1) 1)]))))
 
 ;; 파트 1
 ;; 다음과 같은 입력이 주어짐.
