@@ -10,10 +10,27 @@
 (comment
   (->> (s/split-lines (slurp sample))
        (#(let [list %]
-           (println (s/split (first list) #" "))
-           (map println list)))))
+           (map (fn [v] (s/split v #" ")) list)))
+       (#(let [list %]
+           (map (fn [v] {:start-pos (s/replace (v 2) ":" "") :id (v 0) :grid (s/split (v 3) #"x")}) list)))
+       (#(let [list %]
+           (println list)
+           (loop [list list mp {}]
+             (if (empty? list)
+               mp
+               (let [target (first list) grid (target :grid)]
+                 (recur (rest list)
+                        (assoc mp (target :start-pos) (conj (get mp (target :start-pos) []) (target :id)))))))))))
 
-
+(comment
+  (let [x 2 y 3 pos "1,3" id "#1" hm {}]
+    (for [x (range x)]
+      ((for [y (range y)]
+         ())))
+    ;; 1,3 2,3
+   ;;  1,4 2,4
+   ;;  1,5 2,5 
+    ))
 
 ;; 파트 1
 ;; 다음과 같은 입력이 주어짐.
