@@ -23,7 +23,8 @@
 (defn twice
   "전달받은 문자열에 중복문자 2개가 있는지 확인"
   [s]
-  (loop [ss (s/split s #"") st #{}]
+  (loop [ss (s/split s #"")
+         st #{}]
     (when (seq ss)
       (if (get st (first ss))
         true
@@ -32,7 +33,9 @@
 (defn three-times
   "전달받은 문자열에 중복문자 3개가 있는지 확인하고 해당 문자 return"
   [s]
-  (loop [ss (s/split s #"") mp {} v []]
+  (loop [ss (s/split s #"")
+         mp {}
+         v  []]
     (if (empty? ss)
       v
       (if (= 2 (Integer. (get mp (first ss) 0)))
@@ -42,7 +45,8 @@
 (defn remove-char
   "전달받은 문자열에 target문자를 삭제"
   [remove-targets st]
-  (loop [remove-targets remove-targets st st]
+  (loop [remove-targets remove-targets
+         st             st]
     (if (empty? remove-targets)
       st
       (recur (rest remove-targets) (s/replace st (first remove-targets) "")))))
@@ -50,16 +54,19 @@
 (defn count-change
   "전달받은 문자열에 중복문자 여부에 따라 mp {:two :three} 의 값을 inc"
   [mp str]
-  (let [two (mp :two) three (mp :three)]
+  (let [two   (mp :two)
+        three (mp :three)]
     (let [three-words (three-times str)]
       (let [twice? (twice (remove-char three-words str))]
-        {:two (if (= twice? true) (inc two) two) :three (if (> (count three-words) 0) (inc three) three)}))))
+        {:two   (if (= twice? true) (inc two) two)
+         :three (if (> (count three-words) 0) (inc three) three)}))))
 
 
 (defn part1 []
   (->> (slurp sample)
        (refine-input)
-       (reduce count-change {:two 0 :three 0})
+       (reduce count-change {:two   0
+                             :three 0})
        (#(* (% :two) (% :three)))))
 
 (comment
@@ -113,7 +120,8 @@
           (vec-remove diff? target))))))
 
 (defn compare-loop [list]
-  (loop [target (first list) others (rest list)]
+  (loop [target (first list)
+         others (rest list)]
     (when (seq others)
       (let [result (get-diff-vector target others)]
         (if (nil? result)
