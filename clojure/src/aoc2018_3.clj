@@ -1,4 +1,18 @@
-(ns aoc2018_3)
+(ns aoc2018_3
+  (:require [clojure.string :as s]))
+
+(def sample "resources/day3.sample.txt")
+
+(comment
+  (slurp sample)
+  (count (s/split-lines (slurp sample))))
+
+(comment
+  (->> (s/split-lines (slurp sample))
+       (#(let [list %]
+           (println (s/split (first list) #" "))
+           (map println list)))))
+
 
 
 ;; 파트 1
