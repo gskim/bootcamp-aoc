@@ -21,7 +21,10 @@
 
 
 (defn twice
-  "전달받은 문자열에 중복문자 2개가 있는지 확인"
+  "전달받은 문자열에 중복문자 2개가 있는지 확인\n
+   input: [ s 'aaabbc' ]\n
+   output: true\n
+   "
   [s]
   (loop [ss (s/split s #"")
          st #{}]
@@ -31,35 +34,46 @@
         (recur (rest ss) (conj st (first ss)))))))
 
 (defn three-times
-  "전달받은 문자열에 중복문자 3개가 있는지 확인하고 해당 문자 return"
-  [s]
-  (loop [ss (s/split s #"")
-         mp {}
-         v  []]
-    (if (empty? ss)
+  "전달받은 문자열에 중복문자 3개가 있는지 확인하고 해당 문자 return\n
+   input: [target-string 'aaabbcc']\n
+   output: ['a']
+   "
+  [target-string]
+  (loop [split-string (s/split target-string #"")
+         mp           {}
+         v            []]
+    (if (empty? split-string)
       v
-      (if (= 2 (Integer. (get mp (first ss) 0)))
-        (recur (rest ss) (merge mp {(first ss) (inc (get mp (first ss) 0))}) (conj v (first ss)))
-        (recur (rest ss) (merge mp {(first ss) (inc (get mp (first ss) 0))}) v)))))
+      (let [target (first split-string)
+            others (rest split-string)]
+        (recur others (merge mp {(target) (inc (get mp (target) 0))})
+               (if (= 2 (Integer. (get mp (target) 0)))
+                 v
+                 (conj v (target))))))))
 
 (defn remove-char
-  "전달받은 문자열에 target문자를 삭제"
-  [remove-targets st]
-  (loop [remove-targets remove-targets
-         st             st]
-    (if (empty? remove-targets)
-      st
-      (recur (rest remove-targets) (s/replace st (first remove-targets) "")))))
+  "전달받은 문자열에 remove-char-list 문자들을 삭제\n
+   input: [remove-char-list ['a' 'b'] target-string 'aaabbbccdd']\n
+   output: 'ccdd'
+   "
+  [remove-char-list target-string]
+  (loop [remove-char-list remove-char-list
+         target-string    target-string]
+    (if (empty? remove-char-list)
+      target-string
+      (recur (rest remove-char-list) (s/replace target-string (first remove-char-list) "")))))
 
 (defn count-change
-  "전달받은 문자열에 중복문자 여부에 따라 mp {:two :three} 의 값을 inc"
+  "전달받은 문자열에 중복문자 여부에 따라 mp {:two :three} 의 값을 inc\n
+   input: [mp {:two 0 :three 0} str 'aabbb']\n
+   output: {:two 1 :three 1}
+   "
   [mp str]
-  (let [two   (mp :two)
-        three (mp :three)]
-    (let [three-words (three-times str)]
-      (let [twice? (twice (remove-char three-words str))]
-        {:two   (if (= twice? true) (inc two) two)
-         :three (if (> (count three-words) 0) (inc three) three)}))))
+  (let [[two three] ((juxt :two :three) mp)
+        three-words (three-times str)
+        twice?      (twice (remove-char three-words str))]
+    {:two   (if twice? (inc two) two)
+     :three (if (> (count three-words) 0) (inc three) three)}))
 
 
 (defn part1 []
@@ -67,11 +81,7 @@
        (refine-input)
        (reduce count-change {:two   0
                              :three 0})
-       (#(* (% :two) (% :three)))))
-
-(comment
-  (twice "abc")
-  (part1))
+       (#(* (:two %) (:three %)))))
 
 ;; 파트 2
 ;; 여러개의 문자열 중, 같은 위치에 정확히 하나의 문자가 다른 문자열 쌍에서 같은 부분만을 리턴하시오.
@@ -97,29 +107,37 @@
 
 (defn just-one-diff?
   "비교문자열 2개중 하나만 다를경우 해당 index를 return.\n
-   없거나 2개이상일 경우 return nil
+   없거나 2개이상일 경우 return nil\n
+   input: [target-a 'aaabb' target-b 'aaacb']\n
+   output: 3\n
    "
   [target-a target-b]
   (when (= (count target-a) (count target-b))
-    (let [not-equal-list (filter (fn [i] (not (= (target-a i) (target-b i)))) (range (count target-a)))]
+    (let [not-equal-list (filter (fn [i] (not (= (get target-a i) (get target-b i)))) (range (count target-a)))]
       (when (= 1 (count not-equal-list)) (first not-equal-list)))))
 
 (defn vec-remove
-  "전달받은 vector에 pos 위치값 제거해서 return"
-  [pos coll]
-  (into (subvec coll 0 pos) (subvec coll (inc pos))))
+  "전달받은 string을 vector변환후 pos 위치값 제거해서 return\n
+   input [pos 1, string 'abcde']\n
+   output ['a' 'c' 'd' 'e']\n
+   "
+  [pos string]
+  (into (subvec (split-string-and-mapping string) 0 pos) (subvec (split-string-and-mapping string) (inc pos))))
 
 (defn get-diff-vector
-  "전달받은 target이 list에 하나만 다른값이 있는경우 다른 문자가 제거된값을 return"
+  "전달받은 target이 list에 하나만 다른값이 있는경우 다른 문자가 제거된값을 return\n
+   input: [target 'aaabb' list ['aaabb' 'aaabc']]\n
+   output: aaab
+   "
   [target list]
-  (loop [r list]
-    (when (seq r)
-      (let [diff? (just-one-diff? target (first r))]
+  (loop [list list]
+    (when (seq list)
+      (let [diff? (just-one-diff? target (first list))]
         (if (nil? diff?)
-          (recur (rest r))
+          (recur (rest list))
           (vec-remove diff? target))))))
 
-(defn compare-loop [list]
+(defn find-diff [list]
   (loop [target (first list)
          others (rest list)]
     (when (seq others)
@@ -128,18 +146,20 @@
           (recur (first others) (rest others))
           result)))))
 
-(defn find-diff-and-make-result [input]
-  (when (> (count input) 1)
-    (let [result (compare-loop input)]
-      (s/join "" result))))
+
 
 (defn part2 []
   (->> (slurp sample)
        (refine-input)
-       (map split-string-and-mapping)
-       (find-diff-and-make-result)))
+       (find-diff)
+       (s/join "")))
+
+
+(comment
+  (twice "aabbc")
+  (part1))
 
 (comment
   (just-one-diff? ["a" "a" "b" "b" "c"] ["a" "a" "b" "b" "e"])
-  (find-diff-and-make-result (map split-string-and-mapping '("abcde" "fghij" "fguij")))
+  (find-diff (map split-string-and-mapping '("abcde" "fghij" "fguij")))
   (part2))
