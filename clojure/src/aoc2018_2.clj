@@ -24,8 +24,7 @@
   "전달받은 문자열에 중복문자 2개가 있는지 확인"
   [s]
   (loop [ss (s/split s #"") st #{}]
-    (if (empty? ss)
-      nil
+    (when (seq ss)
       (if (get st (first ss))
         true
         (recur (rest ss) (conj st (first ss)))))))
@@ -64,6 +63,7 @@
        (#(* (% :two) (% :three)))))
 
 (comment
+  (twice "abc")
   (part1))
 
 ;; 파트 2
@@ -93,12 +93,9 @@
    없거나 2개이상일 경우 return nil
    "
   [target-a target-b]
-  (if (not (= (count target-a) (count target-b)))
-    nil
+  (when (= (count target-a) (count target-b))
     (let [not-equal-list (filter (fn [i] (not (= (target-a i) (target-b i)))) (range (count target-a)))]
-      (if (= 1 (count not-equal-list))
-        (first not-equal-list)
-        nil))))
+      (when (= 1 (count not-equal-list)) (first not-equal-list)))))
 
 (defn vec-remove
   "전달받은 vector에 pos 위치값 제거해서 return"
@@ -109,8 +106,7 @@
   "전달받은 target이 list에 하나만 다른값이 있는경우 다른 문자가 제거된값을 return"
   [target list]
   (loop [r list]
-    (if (empty? r)
-      nil
+    (when (seq r)
       (let [diff? (just-one-diff? target (first r))]
         (if (nil? diff?)
           (recur (rest r))
@@ -118,16 +114,14 @@
 
 (defn compare-loop [list]
   (loop [target (first list) others (rest list)]
-    (if (empty? others)
-      nil
+    (when (seq others)
       (let [result (get-diff-vector target others)]
         (if (nil? result)
           (recur (first others) (rest others))
           result)))))
 
 (defn find-diff-and-make-result [input]
-  (if (< (count input) 2)
-    nil
+  (when (> (count input) 1)
     (let [result (compare-loop input)]
       (s/join "" result))))
 
