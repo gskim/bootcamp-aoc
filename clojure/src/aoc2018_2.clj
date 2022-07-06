@@ -16,11 +16,13 @@
 
 (def sample "resources/day2.txt")
 
-(defn make-data [data]
-  (s/split-lines data))
+(defn refine-input [input]
+  (s/split-lines input))
 
 
-(defn twice [s]
+(defn twice
+  "전달받은 문자열에 중복문자 2개가 있는지 확인"
+  [s]
   (loop [ss (s/split s #"") st #{}]
     (if (empty? ss)
       nil
@@ -28,7 +30,9 @@
         true
         (recur (rest ss) (conj st (first ss)))))))
 
-(defn three-times [s]
+(defn three-times
+  "전달받은 문자열에 중복문자 3개가 있는지 확인하고 해당 문자 return"
+  [s]
   (loop [ss (s/split s #"") mp {} v []]
     (if (empty? ss)
       v
@@ -36,26 +40,28 @@
         (recur (rest ss) (merge mp {(first ss) (inc (get mp (first ss) 0))}) (conj v (first ss)))
         (recur (rest ss) (merge mp {(first ss) (inc (get mp (first ss) 0))}) v)))))
 
-(defn remove-char [remove-targets st]
+(defn remove-char
+  "전달받은 문자열에 target문자를 삭제"
+  [remove-targets st]
   (loop [remove-targets remove-targets st st]
     (if (empty? remove-targets)
       st
       (recur (rest remove-targets) (s/replace st (first remove-targets) "")))))
 
-(defn count-change [mp str]
+(defn count-change
+  "전달받은 문자열에 중복문자 여부에 따라 mp {:two :three} 의 값을 inc"
+  [mp str]
   (let [two (mp :two) three (mp :three)]
     (let [three-words (three-times str)]
       (let [twice? (twice (remove-char three-words str))]
         {:two (if (= twice? true) (inc two) two) :three (if (> (count three-words) 0) (inc three) three)}))))
 
-(defn result [mp]
-  (* (mp :two) (mp :three)))
 
 (defn part1 []
   (->> (slurp sample)
-       (make-data)
+       (refine-input)
        (reduce count-change {:two 0 :three 0})
-       (result)))
+       (#(* (% :two) (% :three)))))
 
 (comment
   (part1))
@@ -77,3 +83,61 @@
 ;; #################################
 ;; ###        Refactoring        ###
 ;; #################################
+
+
+(defn split-string-and-mapping [string]
+  (s/split string #""))
+
+(defn just-one-diff?
+  "비교문자열 2개중 하나만 다를경우 해당 index를 return.\n
+   없거나 2개이상일 경우 return nil
+   "
+  [target-a target-b]
+  (if (not (= (count target-a) (count target-b)))
+    nil
+    (let [not-equal-list (filter (fn [i] (not (= (target-a i) (target-b i)))) (range (count target-a)))]
+      (if (= 1 (count not-equal-list))
+        (first not-equal-list)
+        nil))))
+
+(defn vec-remove
+  "전달받은 vector에 pos 위치값 제거해서 return"
+  [pos coll]
+  (into (subvec coll 0 pos) (subvec coll (inc pos))))
+
+(defn get-diff-vector
+  "전달받은 target이 list에 하나만 다른값이 있는경우 다른 문자가 제거된값을 return"
+  [target list]
+  (loop [r list]
+    (if (empty? r)
+      nil
+      (let [diff? (just-one-diff? target (first r))]
+        (if (nil? diff?)
+          (recur (rest r))
+          (vec-remove diff? target))))))
+
+(defn compare-loop [list]
+  (loop [target (first list) others (rest list)]
+    (if (empty? others)
+      nil
+      (let [result (get-diff-vector target others)]
+        (if (nil? result)
+          (recur (first others) (rest others))
+          result)))))
+
+(defn find-diff-and-make-result [input]
+  (if (< (count input) 2)
+    nil
+    (let [result (compare-loop input)]
+      (s/join "" result))))
+
+(defn part2 []
+  (->> (slurp sample)
+       (refine-input)
+       (map split-string-and-mapping)
+       (find-diff-and-make-result)))
+
+(comment
+  (just-one-diff? ["a" "a" "b" "b" "c"] ["a" "a" "b" "b" "e"])
+  (find-diff-and-make-result (map split-string-and-mapping '("abcde" "fghij" "fguij")))
+  (part2))
