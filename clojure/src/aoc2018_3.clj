@@ -12,18 +12,26 @@
        (#(let [list %]
            (map (fn [v] (s/split v #" ")) list)))
        (#(let [list %]
-           (map (fn [v] {:start-pos (s/replace (v 2) ":" "") :id (v 0) :grid (s/split (v 3) #"x")}) list)))
+           (map (fn [v] {:start-pos (s/replace (v 2) ":" "")
+                         :id        (v 0)
+                         :grid      (s/split (v 3) #"x")}) list)))
        (#(let [list %]
            (println list)
-           (loop [list list mp {}]
+           (loop [list list
+                  mp   {}]
              (if (empty? list)
                mp
-               (let [target (first list) grid (target :grid)]
+               (let [target (first list)
+                     grid   (target :grid)]
                  (recur (rest list)
                         (assoc mp (target :start-pos) (conj (get mp (target :start-pos) []) (target :id)))))))))))
 
 (comment
-  (let [x 2 y 3 pos "1,3" id "#1" hm {}]
+  (let [x   2
+        y   3
+        pos "1,3"
+        id  "#1"
+        hm  {}]
     (for [x (range x)]
       ((for [y (range y)]
          ())))
