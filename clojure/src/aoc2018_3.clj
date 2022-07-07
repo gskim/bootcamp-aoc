@@ -25,21 +25,21 @@
   (map (fn [pos] [(+ (first pos) (first position)) (+ (last pos) (last position))]) list))
 
 
-(defn split-input-by-space
+(defn split-input-by-regex
   ;; input ["#1 @ 108,350: 22x29" "#2 @ 370,638: 13x12"]
-  ;; output (["#1" "@" "108,350:" "22x29"] ["#2" "@" "370,638:" "13x12"])
+  ;; output (["#1" "108,350" "22x29"] ["#2" "370,638" "13x12"])
   "문자열 목록들을 space 로 split"
   [list]
-  (map (fn [v] (s/split v #" ")) list))
+  (map (fn [v] (s/split v #" @ |: ")) list))
 
 (defn mapping-data-by-list
   ;; input (["#1" "@" "108,350:" "22x29"] ["#2" "@" "370,638:" "13x12"])
   ;; output ({:start-pos (108 350), :id "#1", :grid (22 29)} {:start-pos (370 638), :id "#2", :grid (13 12)}) 
   "vector list로 전달받은 목록을 hash-map 으로 재가공"
   [list]
-  (map (fn [v] {:start-pos (vec (map read-string (s/split (s/replace (v 2) ":" "") #",")))
+  (map (fn [v] {:start-pos (vec (map read-string (s/split (v 1) #",")))
                 :id        (v 0)
-                :grid      (vec (map read-string (s/split (v 3) #"x")))}) list))
+                :grid      (vec (map read-string (s/split (v 2) #"x")))}) list))
 
 (defn mapping-position-id [mapping-data]
   (let [grid              (:grid mapping-data)
@@ -104,7 +104,7 @@
 (defn part1 []
   (->> (slurp sample)
        (parse-input)
-       (split-input-by-space)
+       (split-input-by-regex)
        (mapping-data-by-list)
        (group-by-id-list-by-position)
        (vals)
@@ -116,7 +116,7 @@
 (defn part2 []
   (->> (slurp sample)
        (parse-input)
-       (split-input-by-space)
+       (split-input-by-regex)
        (mapping-data-by-list)
        (map (fn [v] {:id   (:id v)
                      :rect (make-rect-position v)}))
