@@ -1,9 +1,9 @@
 (ns aoc2018_3
-  (:require [clojure.string :as s]))
+  (:require (clojure [string :as s] [set :as st])))
 
-(def sample "resources/day3.txt")
+(def sample "resources/day3.sample.txt")
 
-(defn parse-input [input]
+(defn split-line-input [input]
   (s/split-lines input))
 
 (defn get-increment-position-list
@@ -18,7 +18,9 @@
 
 (defn sum-position-list
   "position 목록에 전달받은 현재위치를 더해서 return\n
-   input: [list '([0 0] [0 1] [0 2] [1 0] [1 1] [1 2]) position '[2 1]]\n
+   input 
+    - list : ([0 0] [0 1] [0 2] [1 0] [1 1] [1 2])
+    - position: [2 1]]
    output: ([2 1] [2 2] [2 3] [3 1] [3 2] [3 3])
    "
   [list position]
@@ -28,22 +30,21 @@
 (defn split-input-by-regex
   ;; input ["#1 @ 108,350: 22x29" "#2 @ 370,638: 13x12"]
   ;; output (["#1" "108,350" "22x29"] ["#2" "370,638" "13x12"])
-  "문자열 목록들을 space 로 split"
+  "문자열 목록들을 정규식으로 split"
   [list]
   (map (fn [v] (s/split v #" @ |: ")) list))
 
 (defn mapping-data-by-list
   ;; input (["#1" "@" "108,350:" "22x29"] ["#2" "@" "370,638:" "13x12"])
   ;; output ({:start-pos (108 350), :id "#1", :grid (22 29)} {:start-pos (370 638), :id "#2", :grid (13 12)}) 
-  "vector list로 전달받은 목록을 hash-map 으로 재가공"
+  "vector sequence를 hash-map 으로 재가공"
   [list]
   (map (fn [v] {:start-pos (vec (map read-string (s/split (v 1) #",")))
                 :id        (v 0)
                 :grid      (vec (map read-string (s/split (v 2) #"x")))}) list))
 
 (defn mapping-position-id [mapping-data]
-  (let [grid              (:grid mapping-data)
-        id                (:id mapping-data)
+  (let [[grid id]         ((juxt :grid :id) mapping-data)
         inc-pos-list      (get-increment-position-list grid)
         incresed-pos-list (sum-position-list inc-pos-list (:start-pos mapping-data))]
     (reduce (fn [acc v] (assoc acc (keyword (s/join "," v)) [id])) {} incresed-pos-list)))
@@ -81,7 +82,19 @@
           [x-start-2 x-end-2 y-start-2 y-end-2] ((juxt :x-start :x-end :y-start :y-end) rect2)]
       (not (or (or (and (>= x-start-1 x-start-2) (>= x-start-1 x-end-2)) (and (<= x-end-1 x-start-2) (<= x-end-1 x-end-2)))
                (or (and (>= y-start-1 y-start-2) (>= y-start-1 y-end-2)) (and (<= y-end-1 y-start-2) (<= y-end-1 y-end-2))))))))
+(defn make-postions-and-id [list]
+  (map (fn [v] {:id            (:id v)
+                :position-list (sum-position-list (get-increment-position-list (:grid v)) (:start-pos v))}) list))
 
+
+(defn overlap-by-intersection?
+  [[mapping-data1 mapping-data2]]
+  (let [positions1 (:position-list mapping-data1)
+        positions2 (:position-list mapping-data2)]
+    (->> (st/intersection (set positions1)
+                          (set positions2))
+         count
+         (#(< 0 %)))))
 
 (defn check-all-not-overlap
   ;; input: {:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}}
@@ -110,30 +123,63 @@
   (map (fn [v] {:id   (:id v)
                 :rect (make-rect-position v)}) list))
 
+(defn is-not-overlab-position-from-position-list
+  "position 들을 비교하여 중복이 자기자신만 있는지 체크"
+  [position-list position]
+  (->> position-list
+       (map #(overlap-by-intersection? [position %]))
+       (filter #(identity %))
+       count
+       (#(when (= 1 %) position))))
+
+(defn find-not-overlap [list]
+  (keep #(is-not-overlab-position-from-position-list list %) list))
+
 (defn part1 []
   (->> (slurp sample)
-       (parse-input)
+       (split-line-input)
        (split-input-by-regex)
        (mapping-data-by-list)
        (group-by-id-list-by-position)
-       (vals)
+       vals
        (filter #(> (count %) 1))
-       (count)))
+       count))
 
+(defn parse-input []
+  (->> (slurp sample)
+       (split-line-input)
+       (split-input-by-regex)
+       (mapping-data-by-list)))
 
+(defn part1-refact []
+  (->> (parse-input)
+       (group-by-id-list-by-position)
+       vals
+       (filter #(> (count %) 1))
+       count))
 
 (defn part2 []
   (->> (slurp sample)
-       (parse-input)
+       (split-line-input)
        (split-input-by-regex)
        (mapping-data-by-list)
        (make-id-and-rect)
        (find-one-not-overlap-data)
        (parse-id)))
 
+(defn part2-refact []
+  (->> (parse-input)
+       (make-postions-and-id)
+       (find-not-overlap)
+       first
+       (parse-id)))
+
+
 (comment
   (part1)
-  (part2))
+  (part1-refact)
+  (part2)
+  (part2-refact))
 
 ;; 1 3   5  7
 ;; 3 1   7  5
