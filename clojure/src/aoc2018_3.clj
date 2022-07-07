@@ -57,13 +57,14 @@
   (reduce (fn [acc mapping-data]
             (merge-with into acc (mapping-position-id mapping-data))) {} list))
 
-(defn make-rect-position [mapping-data]
+(defn make-rect-position
+  "시작점에서부터 grid 값만큼 사각형 꼭지점좌표 return"
+  [mapping-data]
   (let [[start-pos grid] ((juxt :start-pos :grid) mapping-data)]
     {:x-start (first start-pos)
      :x-end   (+ (first start-pos) (first grid))
      :y-start (last start-pos)
      :y-end   (+ (last start-pos) (last grid))}))
-'(1 2)
 
 (defn overlap?
   "첫번째 인자의 사각형과 두번째 인자의 사각형 좌표 겹침 여부\n
@@ -101,6 +102,14 @@
 (defn parse-id [mapping-data]
   (s/replace (:id mapping-data) "#" ""))
 
+(defn make-id-and-rect
+  ;; input: ({:start-pos [108 350], :id "#1", :grid [22 29])})
+  ;; output: ({:id "#1" :rect {:x-start 1 :x-end 5 :y-start 3 :y-end 7})
+  "id 와 rect 로 이루어진 hash-map list를 return"
+  [list]
+  (map (fn [v] {:id   (:id v)
+                :rect (make-rect-position v)}) list))
+
 (defn part1 []
   (->> (slurp sample)
        (parse-input)
@@ -118,8 +127,7 @@
        (parse-input)
        (split-input-by-regex)
        (mapping-data-by-list)
-       (map (fn [v] {:id   (:id v)
-                     :rect (make-rect-position v)}))
+       (make-id-and-rect)
        (find-one-not-overlap-data)
        (parse-id)))
 
