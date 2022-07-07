@@ -11,8 +11,7 @@
    input: [x 2 y 2]
    output: ([0 0] [0 1] [1 0] [1 1])
    "
-  [x y]
-
+  [[x y]]
   (for [x (range x)
         y (range y)]
     [x y]))
@@ -45,7 +44,7 @@
 (defn mapping-position-id [mapping-data]
   (let [grid              (:grid mapping-data)
         id                (:id mapping-data)
-        inc-pos-list      (get-increment-position-list (first grid) (last grid))
+        inc-pos-list      (get-increment-position-list grid)
         incresed-pos-list (sum-position-list inc-pos-list (:start-pos mapping-data))]
     (reduce (fn [acc v] (assoc acc (keyword (s/join "," v)) [id])) {} incresed-pos-list)))
 
@@ -84,18 +83,18 @@
         true))))
 
 
-(defn check-overlap
+(defn check-all-not-overlap
   ;; input: {:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}}
   ;; output: [{:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}} {:id #2, :rect {:x-start 3, :x-end 7, :y-start 1, :y-end 5}} {:id #3, :rect {:x-start 5, :x-end 7, :y-start 5, :y-end 7}} {:id #4, :rect {:x-start 10, :x-end 12, :y-start 10, :y-end 12}}]
   "target의 rect좌표가 list의 rect좌표들에 겹치는게 하나도 없는지 여부 확인"
   [target list]
   (every? #(not (overlap? target %)) list))
 
-(defn find-not-overlap-data
+(defn find-one-not-overlap-data
   "data 목록중에 겹침이 없는 data 하나가 나올경우 즉시 해당 data return"
   [list]
   (reduce (fn [list target]
-            (if (check-overlap target list)
+            (if (check-all-not-overlap target list)
               (reduced target)
               list)) list list))
 
@@ -122,7 +121,7 @@
        (mapping-data-by-list)
        (map (fn [v] {:id   (:id v)
                      :rect (make-rect-position v)}))
-       (find-not-overlap-data)
+       (find-one-not-overlap-data)
        (parse-id)))
 
 (comment
