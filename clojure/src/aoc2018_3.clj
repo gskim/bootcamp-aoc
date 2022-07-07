@@ -67,6 +67,7 @@
 
 (defn overlap?
   "첫번째 인자의 사각형과 두번째 인자의 사각형 좌표 겹침 여부\n
+   :id가 같은 data인 경우 겹침검사 pass\n
    input: [{:id #3, :rect {:x-start 5, :x-end 7, :y-start 5, :y-end 7}} {:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}}]
    output: boolean
    "
@@ -77,10 +78,8 @@
           rect2                                 (:rect target2)
           [x-start-1 x-end-1 y-start-1 y-end-1] ((juxt :x-start :x-end :y-start :y-end) rect1)
           [x-start-2 x-end-2 y-start-2 y-end-2] ((juxt :x-start :x-end :y-start :y-end) rect2)]
-      (if (or (or (and (>= x-start-1 x-start-2) (>= x-start-1 x-end-2)) (and (<= x-end-1 x-start-2) (<= x-end-1 x-end-2)))
-              (or (and (>= y-start-1 y-start-2) (>= y-start-1 y-end-2)) (and (<= y-end-1 y-start-2) (<= y-end-1 y-end-2))))
-        false
-        true))))
+      (not (or (or (and (>= x-start-1 x-start-2) (>= x-start-1 x-end-2)) (and (<= x-end-1 x-start-2) (<= x-end-1 x-end-2)))
+               (or (and (>= y-start-1 y-start-2) (>= y-start-1 y-end-2)) (and (<= y-end-1 y-start-2) (<= y-end-1 y-end-2))))))))
 
 
 (defn check-all-not-overlap
