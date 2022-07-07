@@ -38,9 +38,9 @@
   ;; output ({:start-pos (108 350), :id "#1", :grid (22 29)} {:start-pos (370 638), :id "#2", :grid (13 12)}) 
   "vector list로 전달받은 목록을 hash-map 으로 재가공"
   [list]
-  (map (fn [v] {:start-pos (into [] (map read-string (s/split (s/replace (v 2) ":" "") #",")))
+  (map (fn [v] {:start-pos (vec (map read-string (s/split (s/replace (v 2) ":" "") #",")))
                 :id        (v 0)
-                :grid      (into [] (map read-string (s/split (v 3) #"x")))}) list))
+                :grid      (vec (map read-string (s/split (v 3) #"x")))}) list))
 
 (defn mapping-position-id [mapping-data]
   (let [grid              (:grid mapping-data)
@@ -87,20 +87,17 @@
 (defn check-overlap
   ;; input: {:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}}
   ;; output: [{:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}} {:id #2, :rect {:x-start 3, :x-end 7, :y-start 1, :y-end 5}} {:id #3, :rect {:x-start 5, :x-end 7, :y-start 5, :y-end 7}} {:id #4, :rect {:x-start 10, :x-end 12, :y-start 10, :y-end 12}}]
-  "target의 rect좌표가 list의 rect좌표들에 하나라도 겹칠경우 return nil"
+  "target의 rect좌표가 list의 rect좌표들에 겹치는게 하나도 없는지 여부 확인"
   [target list]
-  (reduce (fn [acc v]
-            (if (not (overlap? acc v))
-              acc
-              (reduced nil))) target list))
+  (every? #(not (overlap? target %)) list))
 
-
-(defn find-not-overlap-data [list]
-  (loop [list (into [] list)
-         idx  0]
-    (if (check-overlap (get list idx) list)
-      (get list idx)
-      (recur list (inc idx)))))
+(defn find-not-overlap-data
+  "data 목록중에 겹침이 없는 data 하나가 나올경우 즉시 해당 data return"
+  [list]
+  (reduce (fn [list target]
+            (if (check-overlap target list)
+              (reduced target)
+              list)) list list))
 
 
 (defn parse-id [mapping-data]
