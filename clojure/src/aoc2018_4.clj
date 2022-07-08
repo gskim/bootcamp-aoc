@@ -1,33 +1,104 @@
-(ns aoc2018_4)
-;; 파트 1
-;; 입력:
+(ns aoc2018_4
+  (:require (clojure [string :as s])))
 
-;; [1518-11-01 00:00] Guard #10 begins shift
-;; [1518-11-01 00:05] falls asleep
-;; [1518-11-01 00:25] wakes up
-;; [1518-11-01 00:30] falls asleep
-;; [1518-11-01 00:55] wakes up
-;; [1518-11-01 23:58] Guard #99 begins shift
-;; [1518-11-02 00:40] falls asleep
-;; [1518-11-02 00:50] wakes up
-;; [1518-11-03 00:05] Guard #10 begins shift
-;; [1518-11-03 00:24] falls asleep
-;; [1518-11-03 00:29] wakes up
-;; [1518-11-04 00:02] Guard #99 begins shift
-;; [1518-11-04 00:36] falls asleep
-;; [1518-11-04 00:46] wakes up
-;; [1518-11-05 00:03] Guard #99 begins shift
-;; [1518-11-05 00:45] falls asleep
-;; [1518-11-05 00:55] wakes up
+(def sample "resources/day4.txt")
 
-;; 키워드: 가드(Guard) 번호, 자는 시간(falls asleep), 일어나는 시간(wakes up).
-;; 각 가드들은 교대 근무를 시작하고 (begins shift) 졸았다가 일어났다를 반복함.
-;; 위의 예시에서 10번 가드는 0시 5분에 잤다가 25분에 일어나고, 또 0시 30분에 잠들었다가 0시 55분에 깨어남.
-;; 가드들에 대해서 자고 깨는 시간 정보들이 입력으로 주어짐.
+(def input (->> (slurp sample)
+                s/split-lines))
 
-;; 파트 1은 “주어진 입력에 대해서, 가장 오랜시간 잠들어있었던 가드의 ID와, 그 가드가 가장 빈번하게 잠들어 있었던 분(minute)의 곱을 구하라”
-;; 만약 20번 가드가 0시 10분~36분, 다음날 0시 5분~11분, 다다음날 0시 11분~13분 이렇게 잠들어 있었다면, “11분“이 가장 빈번하게 잠들어 있던 ‘분’. 그럼 답은 20 * 11 = 220.
+(defn is-guard-info [description]
+  (s/starts-with? description "G"))
+
+(defn get-guard-id [description]
+  (->> (re-matches #"Guard #(\d+) begins shift" description)
+       last
+       Integer.))
+
+(defn mapping-data [[date hour min description]]
+  (let [is-guard? (is-guard-info description)]
+    {:id       (Long. (str (s/replace date #"-" "") hour min))
+     :min      min
+     :type     (if is-guard? "guard" "time")
+     :guard-id (if is-guard? (get-guard-id description) nil)}))
+
+(defn redefine-data [string]
+  (-> (re-matches #"\[(\d+-\d+-\d+) (\d+)\:(\d+)] (.*)" string)
+      next
+      mapping-data))
+
+(defn order-by-id-asc [mapping-data-list]
+  (sort-by :id mapping-data-list))
+
+(defn all-min-by-min-range [[start-min end-min]]
+  (range (Integer. (:min start-min)) (Integer. (:min end-min))))
+
+(defn get-all-sleep-mins [times]
+  (->> times
+       (partition-all 2)
+       (map all-min-by-min-range)))
+
+(defn make-min-group-by-guard-id [partition-list]
+  (map (fn [[guard times]] {:guard-id (:guard-id (first guard))
+                            :times    (get-all-sleep-mins times)}) partition-list))
+
+(defn time-list-group-by-guard-id [mapping-data-list]
+  (->> (partition-by #(= "guard" (:type %)) mapping-data-list)
+       (partition 2)
+       (make-min-group-by-guard-id)))
+
+(defn merge-data [min-guard-data-list]
+  (->> min-guard-data-list
+       (group-by :guard-id)
+       vals
+       (map #(->> {:guard-id (:guard-id (first %))
+                   :times    (mapcat :times %)}))))
+
+(defn assoc-total-sleep-minute [data]
+  (assoc data :sleep-cnt (reduce (fn [acc minutes] (+ acc (count minutes))) 0 (:times data))))
+
+(defn guard-who-sleeps-the-most [data-list]
+  (first (sort-by :sleep-cnt > data-list)))
+
+(defn guard-who-fequently-sleep-the-most [data-list]
+  (last (sort-by :cnt data-list)))
+
+(defn parse-minute-count [[minute cnt]]
+  {:minute minute
+   :cnt    cnt})
+
+(defn most-frequency-minute-count [data]
+  (->> (flatten (:times data))
+       frequencies
+       (sort-by val)
+       last
+       (parse-minute-count)))
+
+(defn assoc-most-frequency-minute-and-count [data]
+  (merge data (most-frequency-minute-count data)))
+
+(defn reprocessing-input [input]
+  (->> input
+       (map redefine-data)
+       (order-by-id-asc)
+       (time-list-group-by-guard-id)
+       (merge-data)))
+
+(defn part1 []
+  (->> input
+       (reprocessing-input)
+       (map assoc-total-sleep-minute)
+       (guard-who-sleeps-the-most)
+       (#(* (:guard-id %) (:minute (most-frequency-minute-count %))))))
+
+(defn part2 []
+  (->> input
+       (reprocessing-input)
+       (map assoc-most-frequency-minute-and-count)
+       (guard-who-fequently-sleep-the-most)
+       (#(* (:guard-id %) (:minute %)))))
 
 
-;; 파트 2
-;; 주어진 분(minute)에 가장 많이 잠들어 있던 가드의 ID과 그 분(minute)을 곱한 값을 구하라.
+
+(comment
+  (part1)
+  (part2))
