@@ -23,21 +23,23 @@
     - position: [2 1]]
    output: ([2 1] [2 2] [2 3] [3 1] [3 2] [3 3])
    "
-  [list position]
-  (map (fn [pos] [(+ (first pos) (first position)) (+ (last pos) (last position))]) list))
+  [{:keys [position-list current-position]}]
+  (map (fn [pos] [(+ (first pos) (first current-position)) (+ (last pos) (last current-position))]) position-list))
 
 
 (defn split-input-by-regex
-  ;; input ["#1 @ 108,350: 22x29" "#2 @ 370,638: 13x12"]
-  ;; output (["#1" "108,350" "22x29"] ["#2" "370,638" "13x12"])
-  "문자열 목록들을 정규식으로 split"
+  "문자열 목록들을 정규식으로 split
+   input [`#1 @ 108,350: 22x29` `#2 @ 370,638: 13x12`]
+   output ([`#1` `108,350` `22x29`] [`#2` `370,638` `13x12`])
+   "
   [list]
   (map (fn [v] (s/split v #" @ |: ")) list))
 
 (defn mapping-data-by-list
-  ;; input (["#1" "@" "108,350:" "22x29"] ["#2" "@" "370,638:" "13x12"])
-  ;; output ({:start-pos (108 350), :id "#1", :grid (22 29)} {:start-pos (370 638), :id "#2", :grid (13 12)}) 
-  "vector sequence를 hash-map 으로 재가공"
+  "vector sequence를 hash-map 으로 재가공
+   input ([`#1` `@` `108,350:` `22x29`] [`#2` `@` `370,638:` `13x12`])
+   output ({:start-pos (108 350), :id `#1`, :grid (22 29)} {:start-pos (370 638), :id `#2`, :grid (13 12)}) 
+   "
   [list]
   (map (fn [v] {:start-pos (vec (map read-string (s/split (v 1) #",")))
                 :id        (v 0)
@@ -46,14 +48,16 @@
 (defn mapping-position-id [mapping-data]
   (let [[grid id]         ((juxt :grid :id) mapping-data)
         inc-pos-list      (get-increment-position-list grid)
-        incresed-pos-list (sum-position-list inc-pos-list (:start-pos mapping-data))]
+        incresed-pos-list (sum-position-list {:position-list    inc-pos-list
+                                              :current-position (:start-pos mapping-data)})]
     (reduce (fn [acc v] (assoc acc (keyword (s/join "," v)) [id])) {} incresed-pos-list)))
 
 
 (defn group-by-id-list-by-position
-  ;; input '({:start-pos (1 3) :id "#1" :grid (4 4)} {:start-pos (3 1) :id "#2" :grid (4 4)})
-  ;; output {:1,5 ["#1"], :5,6 ["#3"], :5,5 ["#3"], :4,6 ["#1"], :1,6 ["#1"], :4,5 ["#1"], :4,4 ["#1" "#2"]}
-  "mapping 된 데이터를 position 기준으로 id를 group 처리"
+  "mapping 된 데이터를 position 기준으로 id를 group 처리
+   input '({:start-pos (1 3) :id `#1` :grid (4 4)} {:start-pos (3 1) :id `#2` :grid (4 4)})
+   output {:1,5 [`#1`], :5,6 [`#3`], :5,5 [`#3`], :4,6 [`#1`], :1,6 [`#1`], :4,5 [`#1`], :4,4 [`#1` `#2`]}
+   "
   [list]
   (reduce (fn [acc mapping-data]
             (merge-with into acc (mapping-position-id mapping-data))) {} list))
@@ -84,7 +88,8 @@
                (or (and (>= y-start-1 y-start-2) (>= y-start-1 y-end-2)) (and (<= y-end-1 y-start-2) (<= y-end-1 y-end-2))))))))
 (defn make-postions-and-id [list]
   (map (fn [v] {:id            (:id v)
-                :position-list (sum-position-list (get-increment-position-list (:grid v)) (:start-pos v))}) list))
+                :position-list (sum-position-list {:position-list    (get-increment-position-list (:grid v))
+                                                   :current-position (:start-pos v)})}) list))
 
 
 (defn overlap-by-intersection?
@@ -97,9 +102,13 @@
          (#(< 0 %)))))
 
 (defn check-all-not-overlap
-  ;; input: {:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}}
-  ;; output: [{:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}} {:id #2, :rect {:x-start 3, :x-end 7, :y-start 1, :y-end 5}} {:id #3, :rect {:x-start 5, :x-end 7, :y-start 5, :y-end 7}} {:id #4, :rect {:x-start 10, :x-end 12, :y-start 10, :y-end 12}}]
-  "target의 rect좌표가 list의 rect좌표들에 겹치는게 하나도 없는지 여부 확인"
+  "target의 rect좌표가 목록의 rect좌표들에 겹치는게 하나도 없는지 여부 확인
+   input target => {:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}}
+         list => [{:id #1, :rect {:x-start 1, :x-end 5, :y-start 3, :y-end 7}}
+            {:id #2, :rect {:x-start 3, :x-end 7, :y-start 1, :y-end 5}}
+            {:id #3, :rect {:x-start 5, :x-end 7, :y-start 5, :y-end 7}}
+            {:id #4, :rect {:x-start 10, :x-end 12, :y-start 10, :y-end 12}}]
+   "
   [target list]
   (every? #(not (overlap? target %)) list))
 
@@ -116,9 +125,10 @@
   (s/replace (:id mapping-data) "#" ""))
 
 (defn make-id-and-rect
-  ;; input: ({:start-pos [108 350], :id "#1", :grid [22 29])})
-  ;; output: ({:id "#1" :rect {:x-start 1 :x-end 5 :y-start 3 :y-end 7})
-  "id 와 rect 로 이루어진 hash-map list를 return"
+  "id 와 rect 로 이루어진 hash-map return
+   input: ({:start-pos [108 350], :id `#1`, :grid [22 29])})
+   output: ({:id `#1` :rect {:x-start 1 :x-end 5 :y-start 3 :y-end 7})
+   "
   [list]
   (map (fn [v] {:id   (:id v)
                 :rect (make-rect-position v)}) list))
