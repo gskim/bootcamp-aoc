@@ -1,7 +1,7 @@
 (ns aoc2018_4
   (:require (clojure [string :as s])))
 
-(def sample "resources/day4.txt")
+(def sample "resources/day4.sample.txt")
 
 (def input (->> (slurp sample)
                 s/split-lines))
@@ -21,13 +21,15 @@
 (defn mapping-data
   "전달받은 정보들로 hash-map 재가공하여 return
    id 에는 [date hour min] 으로 PK값을 만듬
+   input [1111 12 25  Guard #10 begins shift]
+   output {:id 11111225 :min 25 :type `guard` :guard-id 10}
    "
   [[date hour min description]]
   (let [is-guard? (is-guard-info description)]
     {:id       (Long. (str (s/replace date #"-" "") hour min))
      :min      min
      :type     (if is-guard? "guard" "time")
-     :guard-id (if is-guard? (get-guard-id description) nil)}))
+     :guard-id (when is-guard? (get-guard-id description))}))
 
 (defn redefine-data
   "input string을 정규식으로 parsing후 필요한 정보들로 hash-map 가공"
@@ -36,12 +38,7 @@
       next
       mapping-data))
 
-(defn order-by-id-asc
-  "id(PK) 값으로 오름차순 정렬"
-  [mapping-data-list]
-  (sort-by :id mapping-data-list))
-
-(defn all-min-by-min-range
+(defn min-range->all-min
   "시작(minute)분과 종료분(minute)까지의 모든 분(minute)들을 return"
   [[start-min end-min]]
   (range (Integer. (:min start-min)) (Integer. (:min end-min))))
@@ -54,7 +51,7 @@
   [times]
   (->> times
        (partition-all 2)
-       (map all-min-by-min-range)))
+       (map min-range->all-min)))
 
 (defn make-min-group-by-guard-id
   "guard-id 를 기준으로 분(minute)들을 그룹화하여 전달"
@@ -63,24 +60,42 @@
          {:guard-id (:guard-id (last guard))
           :times    (get-all-sleep-mins times)}) partition-list))
 
-(defn time-list-group-by-guard-id [mapping-data-list]
+(defn time-list-group-by-guard-id
+  "
+   input ({:id 151811010000, :min `00`, :type `guard`, :guard-id 10}
+          {:id 151811010005, :min `05`, :type `time`, :guard-id nil}
+          {:id 151811010025, :min `25`, :type `time`, :guard-id nil})
+   output ({:guard-id 10 :times ((5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24)})
+  "
+  [mapping-data-list]
   (->> (partition-by #(= "guard" (:type %)) mapping-data-list)
        (partition-all 2)
        (make-min-group-by-guard-id)))
 
-(defn merge-data
-  "guard-id가 같은 분(minute)들의 데이터를 merge 처리"
+(defn merge-time-list-by-guard-id
+  "guard-id가 같은 분(minute)들의 데이터를 merge 처리
+   input ({:guard-id 10 :times ((5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24)
+           (30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54))}
+          {:guard-id 10, :times ((24 25 26 27 28))})
+   output ({:guard-id 10 :times ((5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24)
+            (30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54) 
+            (24 25 26 27 28))})
+   "
   [min-guard-data-list]
   (->> min-guard-data-list
        (group-by :guard-id)
        vals
-       (map #(->> {:guard-id (:guard-id (first %))
-                   :times    (mapcat :times %)}))))
+       (map (fn [v] {:guard-id (:guard-id (first v))
+                     :times    (mapcat :times v)}))))
 
 (defn assoc-total-sleep-minute
   "총 잠든시간을 추가"
   [data]
-  (assoc data :sleep-cnt (reduce (fn [acc minutes] (+ acc (count minutes))) 0 (:times data))))
+  (assoc data :sleep-cnt
+         (reduce
+          (fn [acc minutes] (+ acc (count minutes)))
+          0
+          (:times data))))
 
 (defn guard-who-sleeps-the-most
   "가장 잠든 총 시간이 많은 가드 정보를 return"
@@ -113,13 +128,16 @@
   (merge data (most-frequency-minute-count data)))
 
 (defn reprocessing-input
-  "읽어드린 input 재가공 처리"
+  "읽어드린 input 재가공 처리
+   input [[1518-03-28 00:04] Guard #2663 begins shift [1518-11-03 00:22] falls asleep]
+   output {:guard-id 1753 :times ((38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53) (57 58))}
+   "
   [input]
   (->> input
        (map redefine-data)
-       (order-by-id-asc)
+       (sort-by :id)
        (time-list-group-by-guard-id)
-       (merge-data)))
+       (merge-time-list-by-guard-id)))
 
 (defn part1 []
   (->> input
@@ -134,8 +152,6 @@
        (map assoc-most-frequency-minute-and-count)
        (guard-who-fequently-sleep-the-most)
        (#(* (:guard-id %) (:minute %)))))
-
-
 
 (comment
   (part1)
