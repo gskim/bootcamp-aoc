@@ -6,8 +6,6 @@
 
 (def input (slurp sample))
 
-(def alphabet-list [\a \b \c \d \e \f \g \h \i \j \k \l \m \n \o \p \q \r \s \t \u \v \w \x \y \z])
-
 (defn char-range
   "시작 char 부터 끝 char 까지의 char 목록 return
    input a c
@@ -62,7 +60,7 @@
       count))
 
 (defn part2 [input-string]
-  (->> alphabet-list
+  (->> (char-range \a \z)
        (map #(remove-by-alphabet input-string %))
        (map part1)
        (sort)
