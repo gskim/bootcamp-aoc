@@ -66,14 +66,6 @@
        (sort)
        first))
 
-(defn samplef [n]
-  (println (str "starting " n))
-  (Thread/sleep 3000)
-  n)
-
-(comment
-  (doall (pmap samplef (range 0 100))))
-
 (comment
   (time (part1 input))
   (time (part2 input)))
