@@ -16,7 +16,7 @@
   [start end]
   (map char (range (int start) (inc (int end)))))
 
-(defn make-regex-string
+(defn make-alphabet-combination-regex
   "전달받은 알파벳들로 (소문자대문자|대문자소문자) 정규식 표현을 return
    input (a b c d e)
    output #`(aA|Aa|bB|Bb|cC|Cc|dD|Dd|eE|Ee)`
@@ -26,7 +26,7 @@
                         (s/join "|" (reduce (fn [acc v] (conj acc (str v (s/upper-case v)) (str (s/upper-case v) v))) [] list))
                         ")")))
 
-(defn get-regex-string
+(defn get-regex-by-alphabet
   "전달받은 두 알파벳 범위의 대소문자 조합 정규식 return
    알파벳 하나만 전달시 해당 알파벳으로만 조합하여 reutrn
    input `a` `c`
@@ -35,10 +35,10 @@
    output #`(aA|Aa)`
    "
   ([alphabet]
-   (get-regex-string alphabet alphabet))
+   (get-regex-by-alphabet alphabet alphabet))
   ([start-alphabet end-alphabet]
    (let [list (char-range start-alphabet end-alphabet)]
-     (make-regex-string list))))
+     (make-alphabet-combination-regex list))))
 
 (defn remove-by-regex
   "전달받은 문자열을 전달받은 정규식으로 더이상 치환할게 없을때까지 치환후 최종결과값 return"
@@ -58,7 +58,7 @@
 
 (defn part1 [input-string]
   (-> input-string
-      (remove-by-regex (get-regex-string \a \z))
+      (remove-by-regex (get-regex-by-alphabet \a \z))
       count))
 
 (defn part2 [input-string]
