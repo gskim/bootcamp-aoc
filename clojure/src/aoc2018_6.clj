@@ -1,7 +1,7 @@
 (ns aoc2018_6
   (:require [clojure.string :as s] [clojure.set :as st]  [clojure.java.io :as io]))
 
-(defn get-input [] (-> "day6.txt"
+(defn get-input [] (-> "day6.sample.txt"
                        (io/resource)
                        (slurp)
                        (s/split-lines)))
@@ -25,8 +25,7 @@
    output [1 2 3 4 5]
    "
   [start end]
-  (-> (vec (range start end))
-      (conj end)))
+  (range start (inc end)))
 
 (defn get-all-coordinates
   "전달받은 좌표들의 모서리 좌표 안쪽 모든 좌표들을 return
@@ -35,11 +34,11 @@
    "
   [coordinates]
   (let [angular-point (get-angular-point coordinates)
-        x-points      (apply end-include-range ((juxt :x1 :x2) angular-point))
+        x-points      (apply end-include-range ((juxt :x1 :x2) angular-point)) ;apply를 안 쓰게 바꿔보자 
         y-points      (apply end-include-range ((juxt :y1 :y2) angular-point))]
-    (->> (for [x x-points
-               y y-points] {:x x
-                            :y y}))))
+    (for [x x-points
+          y y-points] {:x x
+                       :y y})))
 
 
 (defn calculate-manhattan-distance
@@ -115,8 +114,8 @@
    "
   [coordinate-string]
   (let [[_ & coordinates] (re-matches #"(\d+), (\d+)" coordinate-string)]
-    {:x (Integer/parseInt (first coordinates))
-     :y (Integer/parseInt (last coordinates))}))
+    {:x (Integer. (first coordinates))
+     :y (Integer. (last coordinates))}))
 
 (defn remove-infinite-increase-coordinate [border-line-coordinates target-coordinates]
   (remove #(include-border-line? border-line-coordinates (:near-coordinate %)) target-coordinates))
@@ -135,10 +134,11 @@
   (let [coordinates                            (map mapping-coordinate input-data)
         target-coordinate-and-near-coordinates (map (fn [coordinate] {:coordinate      coordinate
                                                                       :near-coordinate []})
-                                                    coordinates)]
+                                                    coordinates)
+        border-line-coordinates                (get-border-line-coordinates coordinates)]
     (->> (get-all-coordinates coordinates)
          (reduce add-near-coordinate (vec target-coordinate-and-near-coordinates))
-         (remove-infinite-increase-coordinate (get-border-line-coordinates coordinates))
+         (remove-infinite-increase-coordinate border-line-coordinates)
          (map #(count (:near-coordinate %)))
          (apply max))))
 
@@ -169,5 +169,6 @@
        (map mapping-coordinate)
        (get-border-line-coordinates)))
 
+(+ 1 1)
 (comment
   (part1 (get-input)))
