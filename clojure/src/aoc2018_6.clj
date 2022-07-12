@@ -135,12 +135,6 @@
                                                                       :near-coordinate []})
                                                     coordinates)
         border-line-coordinates                (get-border-line-coordinates coordinates)]
-    #_(->> (take 1000 (get-all-coordinates coordinates))
-           (reduce add-near-coordinate (vec target-coordinate-and-near-coordinates))
-           (remove-infinite-increase-coordinate border-line-coordinates)
-           (map #(count (:near-coordinate %)))
-           (apply max))
-
     (->> (get-all-coordinates coordinates)
          (reduce add-near-coordinate (vec target-coordinate-and-near-coordinates))
          (remove-infinite-increase-coordinate border-line-coordinates)
@@ -172,4 +166,8 @@
 
 (comment
   (time (part1 (get-input))))
+
+
+
+
 
