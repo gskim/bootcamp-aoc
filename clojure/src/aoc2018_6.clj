@@ -95,10 +95,9 @@
   [target-coordinates coordinate]
   (let [nearest-target (find-nearest-coordinate coordinate target-coordinates)]
     (if nearest-target
-      target-coordinates
-      #_(update-in target-coordinates
-                   [(.indexOf target-coordinates nearest-target) :near-coordinate]
-                   (fn [near-coordinate-v] (conj near-coordinate-v coordinate)))
+      (update-in target-coordinates
+                 [(.indexOf target-coordinates nearest-target) :near-coordinate]
+                 (fn [near-coordinate-v] (conj near-coordinate-v coordinate)))
       target-coordinates)))
 
 
