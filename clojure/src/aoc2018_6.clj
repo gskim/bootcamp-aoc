@@ -76,10 +76,11 @@
    output {:coordinate {:x 2, :y 3}
    "
   [coordinate targets]
-  (let [sorted-targets (sort-by #(calculate-manhattan-distance coordinate (:coordinate %)) targets)]
-    (when (not= (calculate-manhattan-distance coordinate (:coordinate (first sorted-targets)))
-                (calculate-manhattan-distance coordinate (:coordinate (second sorted-targets))))
-      (first sorted-targets))))
+  (let [add-distances       (map (fn [v] (into v [{:distance (calculate-manhattan-distance coordinate (:coordinate v))}])) targets)
+        sorted-by-distances (sort-by :distance add-distances)]
+    (when (not= (calculate-manhattan-distance coordinate (:coordinate (first sorted-by-distances)))
+                (calculate-manhattan-distance coordinate (:coordinate (second sorted-by-distances))))
+      (apply dissoc (first sorted-by-distances) [:distance]))))
 
 
 (defn add-near-coordinate
@@ -134,6 +135,12 @@
                                                                       :near-coordinate []})
                                                     coordinates)
         border-line-coordinates                (get-border-line-coordinates coordinates)]
+    #_(->> (take 1000 (get-all-coordinates coordinates))
+           (reduce add-near-coordinate (vec target-coordinate-and-near-coordinates))
+           (remove-infinite-increase-coordinate border-line-coordinates)
+           (map #(count (:near-coordinate %)))
+           (apply max))
+
     (->> (get-all-coordinates coordinates)
          (reduce add-near-coordinate (vec target-coordinate-and-near-coordinates))
          (remove-infinite-increase-coordinate border-line-coordinates)
@@ -143,14 +150,6 @@
 
 
 (comment
-  (merge [{:x 1
-           :y 1}] [{:x 1
-                    :y 2}] [{:x 1
-                             :y 1}])
-  (conj [] {:x 1
-            :y 1})
-  (concat (map #(vector 1 %) [1 2 3 4 5 6 7 8 9]) (map #(vector 8 %) [1 2 3 4 5 6 7 8 9]))
-  (range 1 10)
   (end-include-range 1 10)
   (get-all-coordinates (seq '([1 1] [1 6] [8 3] [3 4] [5 5] [8 9] [7 10]))))
 
@@ -171,7 +170,6 @@
        (map mapping-coordinate)
        (get-border-line-coordinates)))
 
-(+ 1 1)
 (comment
-  (part1 (get-input)))
+  (time (part1 (get-input))))
 
