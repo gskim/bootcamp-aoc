@@ -12,12 +12,12 @@
    output {:x1 1, :x2 8 :y1 1, :y2 10}
    "
   [coordinates]
-  (let [sort-by-x (sort-by :x coordinates)
-        sort-by-y (sort-by :y coordinates)]
-    {:x1 (:x (first sort-by-x))
-     :x2 (:x (last sort-by-x))
-     :y1 (:y (first sort-by-y))
-     :y2 (:y (last sort-by-y))}))
+  (let [x-vals (map :x coordinates)
+        y-vals (map :y coordinates)]
+    {:x1 (apply min x-vals)
+     :x2 (apply max x-vals)
+     :y1 (apply min y-vals)
+     :y2 (apply max y-vals)}))
 
 (defn end-include-range
   "end 가 포함된 range return
@@ -34,8 +34,9 @@
    "
   [coordinates]
   (let [angular-point (get-angular-point coordinates)
-        x-points      (apply end-include-range ((juxt :x1 :x2) angular-point)) ;apply를 안 쓰게 바꿔보자 
-        y-points      (apply end-include-range ((juxt :y1 :y2) angular-point))]
+        [x1 x2 y1 y2] ((juxt :x1 :x2 :y1 :y2) angular-point)
+        x-points      (end-include-range x1 x2)
+        y-points      (end-include-range y1 y2)]
     (for [x x-points
           y y-points] {:x x
                        :y y})))
@@ -54,20 +55,17 @@
    "
   [coordinates]
   (let [angular-point (get-angular-point coordinates)
-        x-points      (apply end-include-range ((juxt :x1 :x2) angular-point))
-        y-points      (apply end-include-range ((juxt :y1 :y2) angular-point))
-        x1            (first x-points)
-        x2            (last x-points)
-        y1            (first y-points)
-        y2            (last y-points)]
-    (distinct (merge (map (fn [y] {:x x1
-                                   :y y}) y-points)
-                     (map (fn [y] {:x x2
-                                   :y y}) y-points)
-                     (map (fn [x] {:x x
-                                   :y y1}) x-points)
-                     (map (fn [x] {:x x
-                                   :y y2}) x-points)))))
+        [x1 x2 y1 y2] ((juxt :x1 :x2 :y1 :y2) angular-point)
+        x-points      (end-include-range x1 x2)
+        y-points      (end-include-range y1 y2)]
+    (distinct (concat (map (fn [y] {:x x1
+                                    :y y}) y-points)
+                      (map (fn [y] {:x x2
+                                    :y y}) y-points)
+                      (map (fn [x] {:x x
+                                    :y y1}) x-points)
+                      (map (fn [x] {:x x
+                                    :y y2}) x-points)))))
 
 
 (defn find-nearest-coordinate
@@ -157,6 +155,10 @@
   (get-all-coordinates (seq '([1 1] [1 6] [8 3] [3 4] [5 5] [8 9] [7 10]))))
 
 (comment
+  (get-angular-point [({:x 1
+                        :y 1} {:x 1
+                               :y 6} {:x 6
+                                      :y 10})])
   (get-input))
 
 (comment
@@ -172,3 +174,4 @@
 (+ 1 1)
 (comment
   (part1 (get-input)))
+
