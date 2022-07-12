@@ -1,7 +1,7 @@
 (ns aoc2018_6
   (:require [clojure.string :as s] [clojure.set :as st]  [clojure.java.io :as io]))
 
-(defn get-input [] (-> "day6.sample.txt"
+(defn get-input [] (-> "day6.txt"
                        (io/resource)
                        (slurp)
                        (s/split-lines)))
@@ -124,7 +124,6 @@
 ;; 좌표와 인접한거리의 좌표목록 구조 생성
 ;; 좌표내의 모든 좌표 생성
 ;; 좌표들의 테두리라인 좌표 생성
-
 ;; 모든 좌표들을 맨하탄거리계산으로 다른좌표와 충돌나지않으면서 가까운 좌표를 가까운좌표목록에 추가
 ;; 테두리라인에 닿은 좌표가 포함된 타겟들을 제거
 ;; 카운트 후 최대값 추출
@@ -141,6 +140,19 @@
          (map #(count (:near-coordinate %)))
          (apply max))))
 
+(defn sum-distance-under-10000?
+  "타겟 좌표와 나머지 좌표들의 맨하탄 거리 총합이 10000 이하 여부  "
+  [target coordinates]
+  (let [distances      (map (fn [coordinate] (calculate-manhattan-distance target coordinate)) coordinates)
+        total-distance (apply + distances)]
+    (< total-distance 10000)))
+
+(defn part2
+  [input-data]
+  (let [coordinates                            (map mapping-coordinate input-data)]
+    (->> (get-all-coordinates coordinates)
+         (filter #(sum-distance-under-10000? % coordinates))
+         count)))
 
 
 (comment
@@ -167,6 +179,10 @@
 (comment
   (time (part1 (get-input))))
 
+
+
+(comment
+  (time (part2 (get-input))))
 
 
 
