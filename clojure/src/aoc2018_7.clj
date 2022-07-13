@@ -37,12 +37,11 @@
     (loop [group-by-last (group-by-last parsed-input-data)
            target        first-key
            waiting       (vec r)
-           v             [first-key]
-           cnt           0]
-      (if (< cnt 100)
+           v             [first-key]]
+      (if (not (nil? target))
         (let [update-data (get-ready-targets target group-by-last)
               new-wating  (sort (distinct (concat (:ready-keys update-data) waiting)))]
-          (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj v (first new-wating)) (inc cnt)))
+          (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj v (first new-wating))))
         v))))
 
 (comment
