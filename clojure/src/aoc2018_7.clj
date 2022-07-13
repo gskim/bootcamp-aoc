@@ -34,15 +34,28 @@
 
 (defn calculator-order [parsed-input-data]
   (let [[first-target & r] (find-first-targets parsed-input-data)]
-    (loop [group-by-last (group-by-last parsed-input-data)
-           target        first-target
-           waiting       (vec r)
-           result        [first-target]]
-      (if (not (nil? target))
-        (let [update-data (get-ready-targets target group-by-last)
-              new-wating  (sort (distinct (concat (:ready-targets update-data) waiting)))]
-          (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj result (first new-wating))))
-        result))))
+    (reduce (fn [acc _]
+              (let [[group-by-last target waiting result] ((juxt :group-by-last :target :waiting :result) acc)]
+                (if (not (nil? target))
+                  (let [update-data (get-ready-targets target group-by-last)
+                        new-wating  (sort (distinct (concat (:ready-targets update-data) waiting)))]
+                    {:group-by-last (:update-group update-data)
+                     :target        (first new-wating)
+                     :waiting       (rest new-wating)
+                     :result        (conj result (first new-wating))})
+                  (reduced result)))) {:group-by-last (group-by-last parsed-input-data)
+                                       :target        first-target
+                                       :waiting       (vec r)
+                                       :result        [first-target]} (range (count parsed-input-data)))
+    #_(loop [group-by-last (group-by-last parsed-input-data)
+             target        first-target
+             waiting       (vec r)
+             result        [first-target]]
+        (if (not (nil? target))
+          (let [update-data (get-ready-targets target group-by-last)
+                new-wating  (sort (distinct (concat (:ready-targets update-data) waiting)))]
+            (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj result (first new-wating))))
+          result))))
 
 (comment
   "part1"
