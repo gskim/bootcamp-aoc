@@ -45,6 +45,7 @@
         result))))
 
 (comment
+  "part1"
   (->> (input-data)
        calculator-order
        s/join))
