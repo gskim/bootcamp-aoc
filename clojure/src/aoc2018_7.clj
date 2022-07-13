@@ -3,16 +3,16 @@
             [clojure.string :as s]
             [clojure.set :as st]))
 
-(defn find-first-keys [input-data]
-  (let [keys (map first input-data)
-        vals (map last input-data)]
-    (sort (st/difference (set keys) (set vals)))))
+(defn find-first-targets [input-data]
+  (let [first-targets (map first input-data)
+        next-targets  (map last input-data)]
+    (sort (st/difference (set first-targets) (set next-targets)))))
 
 (defn group-by-last [parsed-input-data]
   (->> parsed-input-data
        (group-by last)
-       (map (fn [v] {:key          (key v)
-                     :waiting-keys (sort (map first (val v)))}))))
+       (map (fn [v] {:target          (key v)
+                     :waiting-targets (sort (map first (val v)))}))))
 
 (defn input-data []
   (->> "day7.txt"
@@ -23,28 +23,28 @@
                       [first second])))))
 
 (defn get-ready-targets [done-target group-by-last]
-  (let [update-group (map (fn [v]
-                            (update v :waiting-keys #(remove (fn [x] (= x done-target)) %))) group-by-last)
-        ready-keys   (->> update-group
-                          (filter (fn [v] (empty? (:waiting-keys v))))
-                          (map :key)
-                          vec)]
-    {:update-group (filter (fn [v] (not (some #{(:key v)} ready-keys))) update-group)
-     :ready-keys   ready-keys}))
+  (let [update-group  (map (fn [v]
+                             (update v :waiting-targets #(remove (fn [x] (= x done-target)) %))) group-by-last)
+        ready-targets (->> update-group
+                           (filter (fn [v] (empty? (:waiting-targets v))))
+                           (map :target)
+                           vec)]
+    {:update-group  (filter (fn [v] (not (some #{(:target v)} ready-targets))) update-group)
+     :ready-targets ready-targets}))
 
-(defn make-order-vector [parsed-input-data]
-  (let [[first-key & r] (find-first-keys parsed-input-data)]
+(defn calculator-order [parsed-input-data]
+  (let [[first-target & r] (find-first-targets parsed-input-data)]
     (loop [group-by-last (group-by-last parsed-input-data)
-           target        first-key
+           target        first-target
            waiting       (vec r)
-           v             [first-key]]
+           result        [first-target]]
       (if (not (nil? target))
         (let [update-data (get-ready-targets target group-by-last)
-              new-wating  (sort (distinct (concat (:ready-keys update-data) waiting)))]
-          (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj v (first new-wating))))
-        v))))
+              new-wating  (sort (distinct (concat (:ready-targets update-data) waiting)))]
+          (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj result (first new-wating))))
+        result))))
 
 (comment
   (->> (input-data)
-       make-order-vector
+       calculator-order
        s/join))
