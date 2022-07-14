@@ -1,14 +1,32 @@
 (ns aoc2020_4
   (:require [clojure.string :as s] [clojure.java.io :as io]))
 
-(def passport-keys {"byr" {:require true}
-                    "iyr" {:require true}
-                    "eyr" {:require true}
-                    "hgt" {:require true}
-                    "hcl" {:require true}
-                    "ecl" {:require true}
-                    "pid" {:require true}
-                    "cid" {:require false}})
+(def passport-keys {"byr" {:require   true
+                           :condition {count 4
+                                       min   1920
+                                       max   2002}}
+                    "iyr" {:require   true
+                           :condition {count 4
+                                       min   2010
+                                       max   2020}}
+                    "eyr" {:require   true
+                           :condition {count 4
+                                       min   2020
+                                       max   2030}}
+                    "hgt" {:require   true
+                           :condition {"or-end-with" {"cm" {min 150
+                                                            max 193}
+                                                      "in" {min 59
+                                                            max 76}}}}
+                    "hcl" {:require   true
+                           :condition {"regex" {#"#([0-9a-z])" {count 6}}}}
+                    "ecl" {:require   true
+                           :condition {"or-equal" ["amb" "blu" "brn" "gry" "grn" "hzl" "oth"]}}
+                    "pid" {:require   true
+                           :condition {"start-with" 0
+                                       count      9}}
+                    "cid" {:require   false
+                           :condition {}}})
 
 (defn get-input [] (-> "2020_day4.txt"
                        (io/resource)
