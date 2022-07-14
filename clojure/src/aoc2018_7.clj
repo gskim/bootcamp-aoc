@@ -21,12 +21,12 @@
 (defn get-second
   "알파벳별 지정된 초를 return
    input A
-   output 1
+   output 61
    input B
-   output 2
+   output 62
    "
   [key]
-  (- (int (.charAt key 0)) 64))
+  (+ (- (int (.charAt key 0)) 64) 60))
 
 
 (defn input-data []
@@ -75,9 +75,9 @@
   ;; 초가 0이 된 워커들을 뽑아내고
   ;; 
   [workers waiting-targets done not-begin-data]
-  (let [dec-second-workers      (map #(update % :remain-seconds dec) workers)
+  (let [dec-second-workers      (map #(update % :remain-seconds (fn [remain-seconds] (if (= 0 remain-seconds) 0 (- remain-seconds 1)))) workers)
         done-workers            (->> dec-second-workers
-                                     (filter #(<= (:remain-seconds %) 0)))
+                                     (filter #(= (:remain-seconds %) 0)))
         done-targets            (->> done-workers (map :target) (filter #(not (nil? %))) sort)
         updated-not-begin-data  (reduce (fn [acc v] (update-not-begin-data v acc)) not-begin-data done-targets)
         ready-targets           (get-ready-targets updated-not-begin-data)
@@ -106,28 +106,32 @@
                                               :waiting-targets waiting-targets} usable-worker-nums)))
 
 (defn calculator-order [parsed-input-data]
-  (reduce (fn [acc _] ;keys
+  (reduce (fn [acc _]
             (let [[not-begin-data waiting done workers sec] ((juxt :not-begin-data :waiting :done :workers :sec) acc)
                   workers-waiting-targets                   (update-worker workers waiting done not-begin-data)
                   waiting-targets                           (:waiting-targets workers-waiting-targets)
                   workers                                   (:workers workers-waiting-targets)
                   done                                      (:done workers-waiting-targets)
                   not-begin-data                            (:not-begin-data workers-waiting-targets)]
+              (when (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) 5))
+                (println acc)
+                (println workers-waiting-targets))
 
-              (if (> (count (filter (fn [w] (< (:remain-seconds w) 0)) workers)) 0)
+              (if (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) 5))
+                (reduced (assoc workers-waiting-targets :sec sec))
                 {:not-begin-data not-begin-data
                  :waiting        waiting-targets
                  :done           done
                  :workers        workers
-                 :sec            (inc sec)}
-                (reduced acc)))) {:not-begin-data (group-by-last-target parsed-input-data)
-                                  :waiting        []
-                                  :done           []
-                                  :workers        (init-workers 5)
-                                  :sec            0} (range 20000)))
+                 :sec            (inc sec)}))) {:not-begin-data (group-by-last-target parsed-input-data)
+                                                :waiting        []
+                                                :done           []
+                                                :workers        (init-workers 5)
+                                                :sec            0} (range 20000)))
 
 (defn stop-iterator? [v]
-  (take-while #(not (seq (:group-by-last %))) v))
+  (let [[not-begin-data workers] ((juxt :not-begin-data :workers) v)]
+    (take-while (if (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) 5)) v))))
 (defn get-result [v]
   (:result v))
 
