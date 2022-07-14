@@ -1,9 +1,9 @@
 (ns aoc2020_4
-  (:require [clojure.string :as s] [clojure.java.io :as io]))
+  (:require [clojure.string :as s] [clojure.java.io :as io] [clojure.spec.alpha :as spec]))
 
 (def passport-keys {"byr" {:require   true
                            :condition {count 4
-                                       min   1920
+                                       min   1910
                                        max   2002}}
                     "iyr" {:require   true
                            :condition {count 4
@@ -28,6 +28,20 @@
                     "cid" {:require   false
                            :condition {}}})
 
+
+(spec/def :passport/byr string?)
+(spec/def :passport/iyr string?)
+(spec/def :passport/eyr string?)
+(spec/def :passport/hgt string?)
+(spec/def :passport/hcl string?)
+(spec/def :passport/ecl string?)
+(spec/def :passport/pid string?)
+(spec/def :passport/cid string?)
+
+(spec/def :passport/available
+  (spec/keys :req [:passport/byr :passport/iyr :passport/eyr :passport/hgt :passport/hcl :passport/ecl :passport/pid]
+             :opt [:passport/cid]))
+
 (defn get-input [] (-> "2020_day4.txt"
                        (io/resource)
                        (slurp)
@@ -39,9 +53,25 @@
        (map #(s/split % #" "))
        (map (fn [data] (reduce (fn [acc kv] (let [[k v] (s/split kv #":")] (assoc acc k v))) {} data)))))
 
+(defn keyword-map-input-data [input]
+  (->> input
+       (map #(s/replace % #"\n" " "))
+       (map #(s/split % #" "))
+       (map (fn [data] (reduce (fn [acc kv] (let [[k v] (s/split kv #":")] (assoc acc (keyword "passport" k) v))) {} data)))))
+
 (defn filter-by-has-passport-require-key [parsed-input-data]
   (let [passport-require-keys (filter (fn [v] (:require (val v))) passport-keys)]
     (filter (fn [v] (every? v (keys passport-require-keys))) parsed-input-data)))
+
+(defn filter-by-passport-available [keyword-map-input-data]
+  (filter (fn [v] (spec/valid? :passport/available v)) keyword-map-input-data))
+
+(comment
+  "part1 use spec"
+  (->> (get-input)
+       keyword-map-input-data
+       filter-by-passport-available
+       count))
 
 (comment
   "part1"
