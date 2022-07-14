@@ -8,11 +8,15 @@
         next-targets  (map last input-data)]
     (sort (st/difference (set first-targets) (set next-targets)))))
 
-(defn group-by-last [parsed-input-data]
-  (->> parsed-input-data
-       (group-by last)
-       (map (fn [v] {:target          (key v)
-                     :waiting-targets (sort (map first (val v)))}))))
+(defn group-by-last-target [parsed-input-data]
+  (let [first-targets (->> (find-first-targets parsed-input-data)
+                           (map (fn [v] {:target  v
+                                         :waiting []})))
+        group-by-last (->> parsed-input-data
+                           (group-by last)
+                           (map (fn [v] {:target          (key v)
+                                         :waiting-targets (sort (map first (val v)))})))]
+    (concat first-targets group-by-last)))
 
 (defn input-data []
   (->> "day7.txt"
@@ -33,32 +37,37 @@
      :ready-targets ready-targets}))
 
 (defn calculator-order [parsed-input-data]
-  (let [[first-target & r] (find-first-targets parsed-input-data)]
-    (reduce (fn [acc _]
-              (let [[group-by-last target waiting result] ((juxt :group-by-last :target :waiting :result) acc)]
-                (if (not (nil? target))
-                  (let [update-data (get-ready-targets target group-by-last)
-                        new-wating  (sort (distinct (concat (:ready-targets update-data) waiting)))]
-                    {:group-by-last (:update-group update-data)
-                     :target        (first new-wating)
-                     :waiting       (rest new-wating)
-                     :result        (conj result (first new-wating))})
-                  (reduced result)))) {:group-by-last (group-by-last parsed-input-data)
-                                       :target        first-target
-                                       :waiting       (vec r)
-                                       :result        [first-target]} (range (count parsed-input-data)))
-    #_(loop [group-by-last (group-by-last parsed-input-data)
-             target        first-target
-             waiting       (vec r)
-             result        [first-target]]
-        (if (not (nil? target))
-          (let [update-data (get-ready-targets target group-by-last)
-                new-wating  (sort (distinct (concat (:ready-targets update-data) waiting)))]
-            (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj result (first new-wating))))
-          result))))
+  (reduce (fn [acc _]
+            (let [[group-by-last target waiting result] ((juxt :group-by-last :target :waiting :result) acc)
+                  update-data                           (get-ready-targets target group-by-last)
+                  new-wating                            (sort (distinct (concat (:ready-targets update-data) waiting)))]
+              (if (not (nil? (first new-wating)))
+                {:group-by-last (:update-group update-data)
+                 :target        (first new-wating)
+                 :waiting       (rest new-wating)
+                 :result        (conj result (first new-wating))}
+                (reduced result)))) {:group-by-last (group-by-last-target parsed-input-data)
+                                     :target        nil
+                                     :waiting       []
+                                     :result        []} (range (count parsed-input-data)))
+
+  #_(loop [group-by-last (group-by-last parsed-input-data)
+           target        first-target
+           waiting       (vec r)
+           result        [first-target]]
+      (if (not (nil? target))
+        (let [update-data (get-ready-targets target group-by-last)
+              new-wating  (sort (distinct (concat (:ready-targets update-data) waiting)))]
+          (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj result (first new-wating))))
+        result)))
+
+(comment
+  (->> (input-data)
+       (group-by-last-target)))
 
 (comment
   "part1"
   (->> (input-data)
        calculator-order
        s/join))
+
