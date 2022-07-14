@@ -3,7 +3,7 @@
 
 (def passport-keys {"byr" {:require   true
                            :condition {count 4
-                                       min   1910
+                                       min   1920
                                        max   2002}}
                     "iyr" {:require   true
                            :condition {count 4
@@ -29,17 +29,24 @@
                            :condition {}}})
 
 
-(spec/def :passport/byr string?)
-(spec/def :passport/iyr string?)
-(spec/def :passport/eyr string?)
-(spec/def :passport/hgt string?)
-(spec/def :passport/hcl string?)
-(spec/def :passport/ecl string?)
-(spec/def :passport/pid string?)
+(spec/def :passport/byr (fn [v] (and (= (count v) 4) (>= (Integer. v) 1920) (<= (Integer. v) 2002))))
+(spec/def :passport/iyr (fn [v] (and (= (count v) 4) (>= (Integer. v) 2010) (<= (Integer. v) 2020))))
+(spec/def :passport/eyr (fn [v] (and (= (count v) 4) (>= (Integer. v) 2020) (<= (Integer. v) 2030))))
+(spec/def :passport/hgt (fn [v] (or (and (s/ends-with? v "cm") (>= (Integer. (s/replace v #"cm" "")) 150) (<= (Integer. (s/replace v #"cm" "")) 193))
+                                    (and (s/ends-with? v "in") (>= (Integer. (s/replace v #"in" "")) 59) (<= (Integer. (s/replace v #"in" "")) 76)))))
+(spec/def :passport/hcl (fn [v] (= (count (last (re-find #"#([0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z])" v))) 6)))
+(spec/def :passport/ecl (fn [v] (contains? #{"amb" "blu" "brn" "gry" "grn" "hzl" "oth"} v)))
+(spec/def :passport/pid (fn [v] (and (s/starts-with? v "0") (= (count (re-find #"\d+" v)) 9))))
 (spec/def :passport/cid string?)
 
 (spec/def :passport/available
-  (spec/keys :req [:passport/byr :passport/iyr :passport/eyr :passport/hgt :passport/hcl :passport/ecl :passport/pid]
+  (spec/keys :req [:passport/byr
+                   :passport/iyr
+                   :passport/eyr
+                   :passport/hgt
+                   :passport/hcl
+                   :passport/ecl
+                   :passport/pid]
              :opt [:passport/cid]))
 
 (defn get-input [] (-> "2020_day4.txt"
@@ -65,6 +72,14 @@
 
 (defn filter-by-passport-available [keyword-map-input-data]
   (filter (fn [v] (spec/valid? :passport/available v)) keyword-map-input-data))
+
+
+(comment
+  (= (count (last (re-find #"#([0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z])" "#12345612"))) 6)
+  (re-find #"\d+" "0123234242342")
+  (int? (re-find #"\d" "a123"))
+  (int? 123)
+  (last (re-find #"#([0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z])" "#123qwe")))
 
 (comment
   "part1 use spec"
