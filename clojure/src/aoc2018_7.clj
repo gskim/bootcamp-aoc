@@ -113,9 +113,6 @@
                   workers                                   (:workers workers-waiting-targets)
                   done                                      (:done workers-waiting-targets)
                   not-begin-data                            (:not-begin-data workers-waiting-targets)]
-              (when (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) 5))
-                (println acc)
-                (println workers-waiting-targets))
 
               (if (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) 5))
                 (reduced (assoc workers-waiting-targets :sec sec))
@@ -131,23 +128,29 @@
 
 (defn stop-iterator? [v]
   (let [[not-begin-data workers] ((juxt :not-begin-data :workers) v)]
-    (take-while (if (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) 5)) v))))
-(defn get-result [v]
-  (:result v))
+    (if (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) 5))
+      true
+      false)))
+
 
 (defn calculator-order-iterator [parsed-input-data]
-  (->> (iterate (fn [acc]
-                  (let [[group-by-last target waiting result] ((juxt :group-by-last :target :waiting :result) acc)
-                        update-data                           (update-not-begin-data target group-by-last)
-                        new-wating                            (sort (distinct (concat (:ready-targets update-data) waiting)))]
-                    {:group-by-last (:update-group update-data)
-                     :target        (first new-wating)
-                     :waiting       (rest new-wating)
-                     :result        (conj result (first new-wating))})) {:group-by-last (group-by-last-target parsed-input-data)
-                                                                         :target        nil
-                                                                         :waiting       []
-                                                                         :result        []})
-       stop-iterator?))
+  (iterate (fn [acc]
+             (let [[not-begin-data waiting done workers sec] ((juxt :not-begin-data :waiting :done :workers :sec) acc)
+                   workers-waiting-targets                   (update-worker workers waiting done not-begin-data)
+                   waiting-targets                           (:waiting-targets workers-waiting-targets)
+                   workers                                   (:workers workers-waiting-targets)
+                   done                                      (:done workers-waiting-targets)
+                   not-begin-data                            (:not-begin-data workers-waiting-targets)]
+
+               {:not-begin-data not-begin-data
+                :waiting        waiting-targets
+                :done           done
+                :workers        workers
+                :sec            (inc sec)})) {:not-begin-data (group-by-last-target parsed-input-data)
+                                              :waiting        []
+                                              :done           []
+                                              :workers        (init-workers 5)
+                                              :sec            0}))
 
 (comment
   (update {:remain-seconds 1} :remain-seconds dec)
@@ -164,8 +167,21 @@
        (group-by-last-target)))
 
 (comment
+  "part1 iterate"
   (->> (input-data)
-       (calculator-order-iterator)))
+       (calculator-order-iterator)
+       (filter stop-iterator?)
+       first
+       :done
+       s/join))
+
+(comment
+  "part2 iterate"
+  (->> (input-data)
+       (calculator-order-iterator)
+       (filter stop-iterator?)
+       first
+       :sec))
 
 (comment
   "part1"
