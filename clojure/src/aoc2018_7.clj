@@ -41,7 +41,7 @@
             (let [[group-by-last target waiting result] ((juxt :group-by-last :target :waiting :result) acc)
                   update-data                           (get-ready-targets target group-by-last)
                   new-wating                            (sort (distinct (concat (:ready-targets update-data) waiting)))]
-              (if (not (nil? (first new-wating)))
+              (if (not-empty group-by-last)
                 {:group-by-last (:update-group update-data)
                  :target        (first new-wating)
                  :waiting       (rest new-wating)
@@ -61,9 +61,33 @@
           (recur (:update-group update-data) (first new-wating) (rest new-wating) (conj result (first new-wating))))
         result)))
 
+(defn stop-iterator? [v]
+  (take-while #(not (seq (:group-by-last %))) v))
+(defn get-result [v]
+  (:result v))
+
+(defn calculator-order-iterator [parsed-input-data]
+  (->> (iterate (fn [acc]
+                  (let [[group-by-last target waiting result] ((juxt :group-by-last :target :waiting :result) acc)
+                        update-data                           (get-ready-targets target group-by-last)
+                        new-wating                            (sort (distinct (concat (:ready-targets update-data) waiting)))]
+                    {:group-by-last (:update-group update-data)
+                     :target        (first new-wating)
+                     :waiting       (rest new-wating)
+                     :result        (conj result (first new-wating))})) {:group-by-last (group-by-last-target parsed-input-data)
+                                                                         :target        nil
+                                                                         :waiting       []
+                                                                         :result        []})
+       stop-iterator?))
+
 (comment
   (->> (input-data)
-       (group-by-last-target)))
+       (group-by-last-target)
+       empty?))
+
+(comment
+  (->> (input-data)
+       (calculator-order-iterator)))
 
 (comment
   "part1"
