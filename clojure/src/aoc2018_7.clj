@@ -84,49 +84,43 @@
   [workers waiting-targets done not-begin-data]
   (let [decreased-second-workers (dec-second-to-workers workers)
         done-workers             (->> decreased-second-workers (filter #(= (:remain-seconds %) 0)))
+        usable-worker-nums       (->> done-workers (map :worker-num))
         done-targets             (->> done-workers (map :target) (filter #(not (nil? %))) sort)
         updated-not-begin-data   (remove-done-target-to-not-begin-data not-begin-data done-targets)
-        ready-targets            (get-ready-targets updated-not-begin-data)
-        filtered-not-begin-data  (filter (fn [v] (not (some #{(:target v)} ready-targets))) updated-not-begin-data)
-        waiting-targets          (sort (concat ready-targets waiting-targets))
-        updated-done             (distinct (concat done done-targets))
-        usable-worker-nums       (->> done-workers (map :worker-num))]
-    (reduce (fn [workers-waiting-targets usable-worker-num]
-              (let [workers         (vec (:workers workers-waiting-targets))
-                    waiting-targets (:waiting-targets workers-waiting-targets)
-                    target          (first waiting-targets)]
-                (if (target)
-                  {:not-begin-data  filtered-not-begin-data
-                   :done            updated-done
-                   :workers         (update-in
-                                     workers
-                                     [usable-worker-num]
-                                     assoc
-                                     :target target
-                                     :remain-seconds (get-second target))
-                   :waiting-targets (rest waiting-targets)}
-                  workers-waiting-targets)))
-            {:not-begin-data  filtered-not-begin-data
-             :done            updated-done
-             :workers         dec-second-workers
-             :waiting-targets waiting-targets}
+        ready-targets            (get-ready-targets updated-not-begin-data)]
+    (reduce (fn [acc usable-worker-num]
+              (let [workers                         (vec (:workers acc))
+                    [target & rest-waiting-targets] (:waiting-targets acc)]
+                (if (nil? target)
+                  acc
+                  (assoc acc :workers (update-in
+                                       workers
+                                       [usable-worker-num]
+                                       assoc
+                                       :target target
+                                       :remain-seconds (get-second target))
+                         :waiting-targets rest-waiting-targets))))
+            {:not-begin-data  (filter (fn [v] (not (some #{(:target v)} ready-targets))) updated-not-begin-data)
+             :done            (distinct (concat done done-targets))
+             :workers         decreased-second-workers
+             :waiting-targets (sort (concat ready-targets waiting-targets))}
             usable-worker-nums)))
 
 (defn done? [v]
   (let [[not-begin-data workers] ((juxt :not-begin-data :workers) v)]
     (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) (count workers)))))
 
+(defn order-sled-assembly [acc]
+  (let [[not-begin-data waiting done workers sec] ((juxt :not-begin-data :waiting :done :workers :sec) acc)
+        workers-waiting-targets                   (update-worker workers waiting done not-begin-data)]
+    (assoc workers-waiting-targets :sec (inc sec))))
 
-(defn calculator-order-iterator [worker-num parsed-input-data]
-  (iterate (fn [acc]
-             (let [[not-begin-data waiting done workers sec] ((juxt :not-begin-data :waiting :done :workers :sec) acc)
-                   workers-waiting-targets                   (update-worker workers waiting done not-begin-data)]
-               (assoc workers-waiting-targets :sec (inc sec))))
-           {:not-begin-data (group-by-last-target parsed-input-data)
-            :waiting        []
-            :done           []
-            :workers        (init-workers worker-num)
-            :sec            0}))
+(defn init-data [worker-num parsed-input-data]
+  {:not-begin-data (group-by-last-target parsed-input-data)
+   :waiting        []
+   :done           []
+   :workers        (init-workers worker-num)
+   :sec            -1})
 
 (comment
   (update {:remain-seconds 1} :remain-seconds dec)
@@ -145,7 +139,8 @@
 (comment
   "part1"
   (->> (input-data)
-       (calculator-order-iterator 1)
+       (init-data 5)
+       (iterate order-sled-assembly)
        (filter done?)
        first
        :done
@@ -154,7 +149,8 @@
 (comment
   "part2"
   (->> (input-data)
-       (calculator-order-iterator 5)
+       (init-data 5)
+       (iterate order-sled-assembly)
        (filter done?)
        first
        :sec))
