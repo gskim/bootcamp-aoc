@@ -2,15 +2,18 @@
   (:require [clojure.string :as s] [clojure.java.io :as io] [clojure.spec.alpha :as spec]))
 
 
-
-(spec/def :passport/byr (fn [v] (and (>= (Integer. v) 1920) (<= (Integer. v) 2002))))
-(spec/def :passport/iyr (fn [v] (and (>= (Integer. v) 2010) (<= (Integer. v) 2020))))
-(spec/def :passport/eyr (fn [v] (and (>= (Integer. v) 2020) (<= (Integer. v) 2030))))
-(spec/def :passport/hgt (fn [v] (or (and (s/ends-with? v "cm") (>= (Integer. (s/replace v #"cm" "")) 150) (<= (Integer. (s/replace v #"cm" "")) 193))
-                                    (and (s/ends-with? v "in") (>= (Integer. (s/replace v #"in" "")) 59) (<= (Integer. (s/replace v #"in" "")) 76)))))
-(spec/def :passport/hcl (fn [v] (re-matches #"#[0-9|a-f]{6}" v)))
-(spec/def :passport/ecl (fn [v] (contains? #{"amb" "blu" "brn" "gry" "grn" "hzl" "oth"} v)))
-(spec/def :passport/pid (fn [v] (re-matches #"[0-9]{9}" v)))
+(spec/def ::inch #(spec/int-in-range? 59 (inc 76) (:height %)))
+(spec/def ::centimeter #(spec/int-in-range? 150 (inc 193) (:height %)))
+(spec/def :passport/byr #(spec/int-in-range? 1920 (inc 2002) %))
+(spec/def :passport/iyr #(spec/int-in-range? 2010 (inc 2020) %))
+(spec/def :passport/eyr #(spec/int-in-range? 2020 (inc 2030) %))
+(spec/def :passport/hgt #(case (:type %)
+                           "cm" ::centimeter
+                           "in" ::inch
+                           false))
+(spec/def :passport/hcl #(re-matches #"#[0-9|a-f]{6}" %))
+(spec/def :passport/ecl #(contains? #{"amb" "blu" "brn" "gry" "grn" "hzl" "oth"} %))
+(spec/def :passport/pid #(re-matches #"[0-9]{9}" %))
 (spec/def :passport/cid string?)
 
 (def passport-require-keys #{:passport/byr
@@ -31,16 +34,31 @@
                    :passport/pid]
              :opt [:passport/cid]))
 
-(defn get-input [] (-> "2020_day4.txt"
-                       (io/resource)
-                       (slurp)
-                       (s/split #"\n\n")))
+
+(defn height-string->map [s]
+  (let [[_ height type] (re-matches #"([0-9]+)(in|cm)" s)]
+    (if (nil? type)
+      nil
+      {:type   type
+       :height (Integer. height)})))
+
+(defn replace-value-by-key [k v]
+  (case k
+    ("iyr" "eyr" "byr") (Integer. v)
+    "hgt" (height-string->map v)
+    v))
+
+(defn get-input [] (-> "2020_day4.txt" io/resource slurp (s/split #"\n\n")))
+
+(defn redefined-keword-value [string-v]
+  (->> (map #(let [[k v] (s/split % #":")] [(keyword "passport" k) (replace-value-by-key k v)]) string-v)
+       (into {})))
 
 (defn keyword-map-input-data [input]
   (->> input
        (map #(s/replace % #"\n" " "))
        (map #(s/split % #" "))
-       (map (fn [data] (reduce (fn [acc kv] (let [[k v] (s/split kv #":")] (assoc acc (keyword "passport" k) v))) {} data)))))
+       (map redefined-keword-value)))
 
 (comment
   (re-matches #"#[0-9|a-f]{6}" "#123123")
