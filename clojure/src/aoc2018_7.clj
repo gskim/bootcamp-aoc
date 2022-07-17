@@ -110,10 +110,10 @@
   (let [[not-begin-data workers] ((juxt :not-begin-data :workers) v)]
     (and (empty? not-begin-data) (= (count (filter (fn [w] (= (:remain-seconds w) 0)) workers)) (count workers)))))
 
-(defn order-sled-assembly [acc]
+(defn order-sled-assembly [acc] ;{:keys [not-begin-data waiting done workers sec] :as acc}
   (let [[not-begin-data waiting done workers sec] ((juxt :not-begin-data :waiting :done :workers :sec) acc)
         workers-waiting-targets                   (update-worker workers waiting done not-begin-data)]
-    (assoc workers-waiting-targets :sec (inc sec))))
+    (assoc workers-waiting-targets :sec (inc sec)))) ;(update workers-waiting-targets :sec inc)
 
 (defn init-data [worker-num parsed-input-data]
   {:not-begin-data (group-by-last-target parsed-input-data)
@@ -141,7 +141,7 @@
   (->> (input-data)
        (init-data 5)
        (iterate order-sled-assembly)
-       (filter done?)
+       (filter done?) ; complement
        first
        :done
        s/join))
