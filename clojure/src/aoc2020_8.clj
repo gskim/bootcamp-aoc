@@ -4,7 +4,7 @@
             [clojure.set :as st]))
 
 
-(defn get-input [] (-> "2020_day8.txt" io/resource slurp s/split-lines))
+(defn get-input [] (-> "2020_day8.sample.txt" io/resource slurp s/split-lines))
 
 (defn parse-input [input]
   (->> input
@@ -25,11 +25,14 @@
       ("nop" "acc") (inc now-id)
       "jmp" (+ now-id (:cnt now)))))
 
-(defn init-state [data]
-  {:data-map data
-   :next-id  nil
-   :sum      0
-   :ids      []})
+(defn init-state []
+  (let [data (->> (get-input)
+                  parse-input
+                  mapping-by-id)]
+    {:data-map data
+     :next-id  nil
+     :sum      0
+     :ids      []}))
 
 (defn duplicate-id? [state]
   (let [next-id      (:next-id state)
@@ -60,15 +63,14 @@
       calc-action
       update-next-id))
 
-(defn part1 []
-  (let [data (->> (get-input)
-                  parse-input
-                  mapping-by-id)]
-    (->> (init-state data)
-         (iterate update-state)
-         (drop-while duplicate-id?)
-         first
-         :sum)))
+(defn part1
+  "part1"
+  []
+  (->> (init-state)
+       (iterate update-state)
+       (drop-while duplicate-id?)
+       first
+       :sum))
 
 (comment
   (->> (get-input)
