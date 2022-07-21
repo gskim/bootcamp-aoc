@@ -68,15 +68,13 @@
           :work           nil
           :remain-seconds 0}) (range num)))
 
-(defn done? [v]
-  (let [[remaining-works workers] ((juxt :remaining-works :workers) v)]
-    (not (and (empty? remaining-works) (= (count (filter (fn [w] (zero? (:remain-seconds w))) workers)) (count workers))))))
+(defn done? [{:keys [remaining-works workers]}]
+  (not (and (empty? remaining-works) (= (count (filter (fn [w] (zero? (:remain-seconds w))) workers)) (count workers)))))
 
 (defn fill-worker
   "사용가능한 workers에 대기중인(:ready-works) :work를 채워넣고 :ready-works 에서 제거"
   [state]
-  (let [usable-workers            (:usable-workers state)
-        usable-worker-numbers     (map :worker-num usable-workers)
+  (let [usable-worker-numbers     (map :worker-num (:usable-workers state))
         worker-num-ready-work-map (into {} (map hash-map usable-worker-numbers (:ready-works state)))]
     (-> state
         (update :workers (fn [workers]
