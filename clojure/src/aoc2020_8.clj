@@ -7,7 +7,11 @@
        (map (fn [v] (s/split v #" ")))
        vec))
 
-(defn get-input [] (-> "2020_day8.sample.txt" io/resource slurp s/split-lines parse-input))
+(defn get-input [] (-> "2020_day8.sample.txt"
+                       io/resource
+                       slurp
+                       s/split-lines
+                       parse-input))
 
 (defn mapping-by-id
   "input [[nop +0] [acc +1]]
@@ -47,10 +51,10 @@
 
 (defn update-next-id
   "이전에 사용된 next-id를 사용하여 다음 next-id를 찾아서 update 한다."
-  [state]
-  (let [[data-map before-id] ((juxt :data-map :next-id) state)
-        next-id              (get-next-id data-map before-id)]
-    (assoc state :next-id next-id :reached-last-id (= (inc next-id) (count data-map)))))
+  [{:keys [data-map next-id]
+    :as   state}]
+  (let [new-next-id              (get-next-id data-map next-id)]
+    (assoc state :next-id new-next-id :reached-last-id (= (inc new-next-id) (count data-map)))))
 
 (defn calc-action
   "state 의 :next-id 로 :data-map에서 가져온 :action :cnt 로 합계를 계산하거나 :ids 를 update 한다."
@@ -80,9 +84,10 @@
 
 (defn get-all-case-states
   "모든 case의 state를 만들고 변경점이없는(acc case) case는 filter 처리"
-  [state]
-  (->> (for [x (range (count (:data-map state)))]
-         (when (not= (:action (get (:data-map state) x)) :acc)
+  [{:keys [data-map]
+    :as   state}]
+  (->> (for [x (range (count data-map))]
+         (when (not= (:action (get data-map x)) :acc)
            (update-data-map-action state x)))
        (filter (fn [v] (not (nil? v))))))
 
@@ -105,7 +110,7 @@
   "part1"
   []
   (->> (get-input)
-       (init-state)
+       init-state
        get-duplicated-case
        :sum))
 
